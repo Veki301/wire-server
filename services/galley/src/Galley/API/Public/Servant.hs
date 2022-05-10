@@ -282,7 +282,7 @@ servantSitemap =
     mls :: API MLSAPI GalleyEffects
     mls =
       mkNamedAPI @"mls-welcome-message" postMLSWelcome
-        <@> mkNamedAPI @"mls-message" postMLSMessage
+        <@> mkNamedAPI @"mls-message" postMLSMessageFromLocalUser
 
     customBackend :: API CustomBackendAPI GalleyEffects
     customBackend = mkNamedAPI @"get-custom-backend-by-domain" getCustomBackendByDomain
