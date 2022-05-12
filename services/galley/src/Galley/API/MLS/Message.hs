@@ -19,6 +19,7 @@
 module Galley.API.MLS.Message
   ( postMLSMessageFromLocalUser,
     postMLSMessage,
+    MLSMessageStaticErrors,
   )
 where
 
@@ -63,24 +64,30 @@ import Wire.API.MLS.Message
 import Wire.API.MLS.Proposal
 import Wire.API.MLS.Serialisation
 
+type MLSMessageStaticErrors =
+  '[ ErrorS 'ConvNotFound,
+     ErrorS 'MLSUnsupportedMessage,
+     ErrorS 'MLSStaleMessage,
+     ErrorS 'MLSProposalNotFound,
+     ErrorS 'MissingLegalholdConsent,
+     ErrorS 'MLSKeyPackageRefNotFound,
+     ErrorS 'MLSClientMismatch,
+     ErrorS 'MLSUnsupportedProposal
+   ]
+
 postMLSMessageFromLocalUser ::
   ( HasProposalEffects r,
-    Members
-      '[ Error FederationError,
-         ErrorS 'ConvNotFound,
-         ErrorS 'MLSUnsupportedMessage,
-         ErrorS 'MLSStaleMessage,
-         ErrorS 'MLSProposalNotFound,
-         ErrorS 'MissingLegalholdConsent,
-         TinyLog
-       ]
-      r
+    Members MLSMessageStaticErrors r,
+    Member (Error FederationError) r,
+    Member TinyLog r
   ) =>
   Local UserId ->
   ConnId ->
   RawMLS SomeMessage ->
   Sem r [Event]
-postMLSMessageFromLocalUser lusr = postMLSMessage lusr (qUntagged lusr)
+postMLSMessageFromLocalUser lusr conn msg =
+  map lcuEvent
+    <$> postMLSMessage lusr (qUntagged lusr) (Just conn) msg
 
 postMLSMessage ::
   ( HasProposalEffects r,
@@ -97,9 +104,9 @@ postMLSMessage ::
   ) =>
   Local x ->
   Qualified UserId ->
-  ConnId ->
+  Maybe ConnId ->
   RawMLS SomeMessage ->
-  Sem r [Event]
+  Sem r [LocalConversationUpdate]
 postMLSMessage loc qusr con smsg = case rmValue smsg of
   SomeMessage tag msg -> do
     -- fetch conversation
@@ -128,8 +135,8 @@ postMLSMessage loc qusr con smsg = case rmValue smsg of
 type HasProposalEffects r =
   ( Member BrigAccess r,
     Member ConversationStore r,
-    Member (Error MLSProtocolError) r,
     Member (Error MLSProposalFailure) r,
+    Member (Error MLSProtocolError) r,
     Member (ErrorS 'MLSKeyPackageRefNotFound) r,
     Member (ErrorS 'MLSClientMismatch) r,
     Member (ErrorS 'MLSUnsupportedProposal) r,
@@ -169,11 +176,11 @@ processCommit ::
     Member (ErrorS 'MissingLegalholdConsent) r
   ) =>
   Qualified UserId ->
-  ConnId ->
+  Maybe ConnId ->
   Local Data.Conversation ->
   Epoch ->
   Commit ->
-  Sem r [Event]
+  Sem r [LocalConversationUpdate]
 processCommit qusr con lconv epoch commit = do
   -- check epoch number
   curEpoch <-
@@ -183,12 +190,12 @@ processCommit qusr con lconv epoch commit = do
 
   -- process and execute proposals
   action <- foldMap applyProposalRef (cProposals commit)
-  events <- executeProposalAction qusr con lconv action
+  updates <- executeProposalAction qusr con lconv action
 
   -- increment epoch number
   setConversationEpoch (Data.convId (tUnqualified lconv)) (succ epoch)
 
-  pure events
+  pure updates
 
 applyProposalRef ::
   ( HasProposalEffects r,
@@ -227,10 +234,10 @@ executeProposalAction ::
     Member TeamStore r
   ) =>
   Qualified UserId ->
-  ConnId ->
+  Maybe ConnId ->
   Local Data.Conversation ->
   ProposalAction ->
-  Sem r [Event]
+  Sem r [LocalConversationUpdate]
 executeProposalAction qusr con lconv action = do
   -- For the moment, assume a fixed ciphersuite.
   -- FUTUREWORK: store ciphersuite with the conversation
@@ -260,17 +267,17 @@ executeProposalAction qusr con lconv action = do
         -- FUTUREWORK: turn this error into a proper response
         throwS @'MLSClientMismatch
 
-    addMembers :: NonEmpty (Qualified UserId) -> Sem r [Event]
+    addMembers :: NonEmpty (Qualified UserId) -> Sem r [LocalConversationUpdate]
     addMembers users =
       -- FUTUREWORK: update key package ref mapping to reflect conversation membership
       handleNoChanges
         . handleMLSProposalFailures @ProposalErrors
-        . fmap (pure . lcuEvent) -- TODO: keep track of ConversationUpdate in the remote case
+        . fmap (pure)
         . updateLocalConversationUnchecked
           @'ConversationJoinTag
           lconv
           qusr
-          (Just con)
+          con
         $ ConversationJoin users roleNameWireMember
 
 handleNoChanges :: Monoid a => Sem (Error NoChanges ': r) a -> Sem r a
@@ -294,7 +301,7 @@ propagateMessage ::
   Local x ->
   Qualified UserId ->
   Data.Conversation ->
-  ConnId ->
+  Maybe ConnId ->
   ByteString ->
   Sem r ()
 propagateMessage loc qusr conv con raw = do
@@ -308,7 +315,7 @@ propagateMessage loc qusr conv con raw = do
       e = Event qcnv qusr now $ EdMLSMessage raw
       lclients = tUnqualified . clients <$> lmems
       mkPush :: UserId -> ClientId -> MessagePush 'NormalMessage
-      mkPush u c = newMessagePush lcnv lmMap (Just con) defMessageMetadata (u, c) e
+      mkPush u c = newMessagePush lcnv lmMap con defMessageMetadata (u, c) e
   runMessagePush loc (Just qcnv) $
     foldMap (uncurry mkPush) (cToList =<< lclients)
   where
