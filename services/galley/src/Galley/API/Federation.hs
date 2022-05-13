@@ -543,11 +543,11 @@ sendMLSMessage ::
   F.MessageSendRequest ->
   Sem r F.MLSMessageResponse
 sendMLSMessage remoteDomain msr =
-  fmap (either F.MLSProtocolError id)
+  fmap (either F.MLSMessageResponseProtocolError id)
     . runError
     . fmap (either F.MLSMessageResponseError id)
     . runError
-    . fmap (either (F.MLSProposalFailure . pfInner) id)
+    . fmap (either (F.MLSMessageResponseProposalFailure . pfInner) id)
     . runError
     $ do
       loc <- qualifyLocal ()

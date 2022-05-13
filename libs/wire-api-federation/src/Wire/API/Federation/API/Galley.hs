@@ -275,8 +275,8 @@ data MLSWelcomeRequest = MLSWelcomeRequest
 
 data MLSMessageResponse
   = MLSMessageResponseError GalleyError
-  | MLSProtocolError Text
-  | MLSProposalFailure Wai.Error
+  | MLSMessageResponseProtocolError Text
+  | MLSMessageResponseProposalFailure Wai.Error
   | MLSMessageResponseUpdates [ConversationUpdate]
   deriving stock (Show, Generic)
   deriving
