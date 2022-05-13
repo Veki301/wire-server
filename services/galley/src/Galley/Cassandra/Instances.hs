@@ -28,6 +28,8 @@ import Control.Error (note)
 import Data.ByteString.Conversion
 import qualified Data.ByteString.Lazy as LBS
 import Data.Domain (Domain, domainText, mkDomain)
+import Data.Either.Combinators hiding (fromRight)
+import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import Galley.Types
 import Galley.Types.Bot ()
@@ -36,6 +38,8 @@ import Galley.Types.Teams.Intra
 import Galley.Types.Teams.SearchVisibility
 import Imports
 import Wire.API.Conversation.Protocol
+import Wire.API.MLS.Proposal
+import Wire.API.MLS.Serialisation
 import Wire.API.Team
 import qualified Wire.API.Team.Feature as Public
 
@@ -205,3 +209,15 @@ instance Cql Epoch where
   toCql = CqlBigInt . fromIntegral . epochNumber
   fromCql (CqlBigInt n) = pure (Epoch (fromIntegral n))
   fromCql _ = Left "epoch: bigint expected"
+
+instance Cql ProposalRef where
+  ctype = Tagged BlobColumn
+  toCql = CqlBlob . LBS.fromStrict . unProposalRef
+  fromCql (CqlBlob b) = Right . ProposalRef . LBS.toStrict $ b
+  fromCql _ = Left "ProposalRef: blob expected"
+
+instance Cql (RawMLS Proposal) where
+  ctype = Tagged BlobColumn
+  toCql = CqlBlob . LBS.fromStrict . rmRaw
+  fromCql (CqlBlob b) = mapLeft T.unpack $ decodeMLS b
+  fromCql _ = Left "Proposal: blob expected"
