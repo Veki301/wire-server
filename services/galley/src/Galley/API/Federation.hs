@@ -20,6 +20,7 @@ module Galley.API.Federation where
 
 import Brig.Types.Connection (Relation (Accepted))
 import Control.Lens (itraversed, (<.>))
+import Data.Bifunctor
 import Data.ByteString.Conversion (toByteString')
 import Data.Containers.ListUtils (nubOrd)
 import Data.Domain (Domain)
@@ -91,6 +92,7 @@ federationSitemap =
     :<|> Named @"on-user-deleted-conversations" onUserDeleted
     :<|> Named @"update-conversation" updateConversation
     :<|> Named @"mls-welcome" mlsSendWelcome
+    :<|> Named @"on-mls-message-sent" onMLSMessageSent
 
 onConversationCreated ::
   Members
@@ -552,3 +554,42 @@ mlsSendWelcome _origDomain (F.MLSWelcomeRequest b64RawWelcome rcpts) = do
           lusr = qualifyAs l u
           e = Event (qUntagged lcnv) (qUntagged lusr) time $ EdMLSWelcome rawWelcome
        in newMessagePush l () Nothing defMessageMetadata (u, c) e
+
+onMLSMessageSent ::
+  Members
+    '[ ExternalAccess,
+       GundeckAccess,
+       Input (Local ()),
+       MemberStore,
+       P.TinyLog
+     ]
+    r =>
+  Domain ->
+  F.RemoteMLSMessage ->
+  Sem r ()
+onMLSMessageSent domain rmm = do
+  loc <- qualifyLocal ()
+  let rcnv = toRemoteUnsafe domain (F.rmmConversation rmm)
+  let users = Set.fromList (map fst (F.rmmRecipients rmm))
+  (members, allMembers) <-
+    first Set.fromList
+      <$> E.selectRemoteMembers (toList users) rcnv
+  unless allMembers $
+    P.warn $
+      Log.field "conversation" (toByteString' (tUnqualified rcnv))
+        Log.~~ Log.field "domain" (toByteString' (tDomain rcnv))
+        Log.~~ Log.msg
+          ( "Attempt to send remote message to local\
+            \ users not in the conversation" ::
+              ByteString
+          )
+  let recipients = filter (\(u, _) -> Set.member u members) (F.rmmRecipients rmm)
+  -- FUTUREWORK: support local bots
+  let e =
+        Event (qUntagged rcnv) (F.rmmSender rmm) (F.rmmTime rmm) $
+          EdMLSMessage (fromBase64ByteString (F.rmmMessage rmm))
+  let mkPush :: (UserId, ClientId) -> MessagePush 'NormalMessage
+      mkPush uc = newMessagePush loc mempty Nothing (F.rmmMetadata rmm) uc e
+
+  runMessagePush loc (Just (qUntagged rcnv)) $
+    foldMap mkPush recipients
