@@ -108,7 +108,14 @@ spec _brigOpts mg brig galley cargohold cannon _federator brigTwo galleyTwo carg
         test mg "send a message in a remote conversation" $ testSendMessageToRemoteConv brig brigTwo galley galleyTwo cannon,
         test mg "delete user connected to remotes and in conversation with remotes" $ testDeleteUser brig brigTwo galley galleyTwo cannon,
         test mg "download remote asset" $ testRemoteAsset brig brigTwo cargohold cargoholdTwo,
-        test mg "claim remote key packages" $ claimRemoteKeyPackages brig brigTwo
+        test mg "claim remote key packages" $
+          claimRemoteKeyPackages
+            brig
+            brigTwo
+            test
+            mg
+            "send an MLS message to a remote user"
+            $ testMLSSendMessage brig brigTwo galleyTwo cannon
       ]
 
 -- | Path covered by this test:
@@ -679,3 +686,70 @@ claimRemoteKeyPackages brig1 brig2 = do
   liftIO $
     Set.map (\e -> (kpbeUser e, kpbeClient e)) (kpbEntries bundle)
       @?= Set.fromList [(bob, c) | c <- bobClients]
+
+-- bob creates an MLS conversation on domain 2 with alice on domain 1, then sends a
+-- message to alice
+testMLSSendMessage :: Brig -> Brig -> Galley -> Cannon -> Http ()
+testMLSSendMessage brig1 brig2 galley2 cannon1 = do
+  -- create alice user and client on domain 1
+  alice <- randomUser brig1
+  aliceClient <-
+    clientId . responseJsonUnsafe
+      <$> addClient
+        brig1
+        (userId alice)
+        (defNewClient PermanentClientType [] (someLastPrekeys !! 0))
+
+  -- create bob user and client on domain 2
+  bob <- randomUser brig2
+  bobClient <-
+    clientId . responseJsonUnsafe
+      <$> addClient
+        brig2
+        (userId bob)
+        (defNewClient PermanentClientType [] (someLastPrekeys !! 1))
+
+  connectUsersEnd2End brig1 brig2 (userQualifiedId alice) (userQualifiedId bob)
+
+  -- create conversation on domain 2
+  convId <-
+    fmap (qUnqualified . cnvQualifiedId) . responseJsonError
+      =<< createConversation galley2 (userId bob) [userQualifiedId alice]
+      <!! const 201 === statusCode
+
+  -- send a message from bob at domain 2 to alice at domain 1
+  let qconvId = Qualified convId (qDomain (userQualifiedId bob))
+      msgText = "🕊️"
+      rcpts = [(userQualifiedId alice, aliceClient, msgText)]
+      msg = mkQualifiedOtrPayload bobClient rcpts "" MismatchReportAll
+
+  WS.bracketR cannon1 (userId alice) $ \(wsAlice) -> do
+    post
+      ( galley2
+          . paths
+            [ "conversations",
+              toByteString' (qDomain qconvId),
+              toByteString' convId,
+              "proteus",
+              "messages"
+            ]
+          . zUser (userId bob)
+          . zConn "conn"
+          . header "Z-Type" "access"
+          . contentProtobuf
+          . acceptJson
+          . bytes (Protolens.encodeMessage msg)
+      )
+      !!! const 201 === statusCode
+
+    -- verify that alice received the message
+    WS.assertMatch_ (5 # Second) wsAlice $ \n -> do
+      let e = List1.head (WS.unpackPayload n)
+      ntfTransient n @?= False
+      evtConv e @?= qconvId
+      evtType e @?= OtrMessageAdd
+      evtFrom e @?= userQualifiedId bob
+      evtData e
+        @?= EdOtrMessage
+          ( OtrMessage bobClient aliceClient (toBase64Text msgText) (Just "")
+          )
