@@ -89,7 +89,7 @@ postMLSMessage lusr con smsg = case rmValue smsg of
         CommitMessage c ->
           processCommit lusr con conv (msgEpoch msg) c
         ApplicationMessage _ -> throwS @'MLSUnsupportedMessage
-        ProposalMessage _ -> pure mempty -- FUTUREWORK: handle proposals
+        ProposalMessage rawP -> processProposal rawP
       SMLSCipherText -> case toMLSEnum' (msgContentType (msgPayload msg)) of
         Right CommitMessageTag -> throwS @'MLSUnsupportedMessage
         Right ProposalMessageTag -> throwS @'MLSUnsupportedMessage
@@ -183,6 +183,14 @@ applyProposal (AddProposal kp) = do
   qclient <- cidQualifiedClient <$> derefKeyPackage ref
   pure (paClient qclient)
 applyProposal _ = throwS @'MLSUnsupportedProposal
+
+processProposal :: HasProposalEffects r => RawMLS Proposal -> Sem r [Event]
+processProposal (RawMLS _rawP proposal) = do
+  -- TODO: See if a group ID should be mapped to its cipher suite in the
+  -- database. When computing a proposal reference, we need the cipher suite,
+  -- and the spec says it is taken from the group.
+  _ <- applyProposal proposal
+  undefined
 
 executeProposalAction ::
   forall r.

@@ -24,6 +24,8 @@ import Crypto.Error
 import Crypto.Hash.Algorithms
 import qualified Crypto.KDF.HKDF as HKDF
 import qualified Crypto.PubKey.Ed25519 as Ed25519
+import Data.Schema
+import qualified Data.Text as Text
 import Data.Word
 import Imports
 import Wire.API.Arbitrary
@@ -35,7 +37,21 @@ newtype CipherSuite = CipherSuite {cipherSuiteNumber :: Word16}
   deriving newtype (ParseMLS, Arbitrary)
 
 data CipherSuiteTag = MLS_128_DHKEMX25519_AES128GCM_SHA256_Ed25519
-  deriving stock (Bounded, Enum, Eq, Show)
+  deriving stock (Bounded, Enum, Eq, Generic, Show)
+  deriving (Arbitrary) via GenericUniform CipherSuiteTag
+
+instance ToSchema CipherSuiteTag where
+  schema =
+    flip
+      withParser
+      ( \b ->
+          case cipherSuiteTag (CipherSuite b) of
+            Nothing -> fail "Unknown cipher suite number: " <> show b
+            Just v -> pure v
+      )
+      $ enum @Text "CipherSuiteTag" $
+        -- mconcat [element "0" MLS_128_DHKEMX25519_AES128GCM_SHA256_Ed25519]
+        mconcat $ fmap (\i -> element (Text.pack . show $ i) i) $ fromEnum @CipherSuiteTag <$> [minBound .. maxBound]
 
 -- | See https://messaginglayersecurity.rocks/mls-protocol/draft-ietf-mls-protocol.html#table-5.
 cipherSuiteTag :: CipherSuite -> Maybe CipherSuiteTag
