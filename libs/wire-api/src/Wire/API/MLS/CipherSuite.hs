@@ -20,10 +20,16 @@
 
 module Wire.API.MLS.CipherSuite where
 
+import Control.Lens ((?~))
 import Crypto.Error
 import Crypto.Hash.Algorithms
 import qualified Crypto.KDF.HKDF as HKDF
 import qualified Crypto.PubKey.Ed25519 as Ed25519
+import Data.Aeson (FromJSON, ToJSON, parseJSON, toJSON)
+import Data.Proxy
+import Data.Schema
+import qualified Data.Swagger as S
+import qualified Data.Swagger.Internal.Schema as S
 import Data.Word
 import Imports
 import Wire.API.Arbitrary
@@ -31,8 +37,23 @@ import Wire.API.MLS.Credential
 import Wire.API.MLS.Serialisation
 
 newtype CipherSuite = CipherSuite {cipherSuiteNumber :: Word16}
-  deriving stock (Eq, Show)
+  deriving stock (Eq, Show, Generic)
   deriving newtype (ParseMLS, Arbitrary)
+  deriving (FromJSON, ToJSON) via Schema CipherSuite
+
+instance S.ToSchema CipherSuite where
+  declareNamedSchema _ =
+    pure . S.named "CipherSuite" $
+      ( S.paramSchemaToSchema (Proxy @Word16)
+          & S.description ?~ "Index number of ciphersuite. See https://messaginglayersecurity.rocks/mls-protocol/draft-ietf-mls-protocol.html#table-5"
+      )
+
+instance ToSchema CipherSuite where
+  schema =
+    mkSchema
+      (swaggerDoc @CipherSuite)
+      (fmap CipherSuite . parseJSON)
+      (Just . toJSON . cipherSuiteNumber)
 
 data CipherSuiteTag = MLS_128_DHKEMX25519_AES128GCM_SHA256_Ed25519
   deriving stock (Bounded, Enum, Eq, Show)

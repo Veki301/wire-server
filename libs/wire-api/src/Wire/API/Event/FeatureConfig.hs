@@ -31,7 +31,7 @@ import Data.Json.Util (ToJSONObject (..))
 import Data.Schema
 import qualified Data.Swagger as S
 import Imports
-import Wire.API.Team.Feature (TeamFeatureAppLockConfig, TeamFeatureClassifiedDomainsConfig, TeamFeatureName (..), TeamFeatureSelfDeletingMessagesConfig, TeamFeatureStatusNoConfig, TeamFeatureStatusNoConfigAndLockStatus, TeamFeatureStatusWithConfig)
+import Wire.API.Team.Feature (TeamFeatureAppLockConfig, TeamFeatureClassifiedDomainsConfig, TeamFeatureMLSConfig, TeamFeatureName (..), TeamFeatureSelfDeletingMessagesConfig, TeamFeatureStatusNoConfig, TeamFeatureStatusNoConfigAndLockStatus, TeamFeatureStatusWithConfig)
 
 data Event = Event
   { _eventType :: EventType,
@@ -56,6 +56,7 @@ data EventData
   | EdFeatureApplockChanged (TeamFeatureStatusWithConfig TeamFeatureAppLockConfig)
   | EdFeatureClassifiedDomainsChanged (TeamFeatureStatusWithConfig TeamFeatureClassifiedDomainsConfig)
   | EdFeatureSelfDeletingMessagesChanged (TeamFeatureStatusWithConfig TeamFeatureSelfDeletingMessagesConfig)
+  | EdFeatureMLSChanged (TeamFeatureStatusWithConfig TeamFeatureMLSConfig)
   deriving (Eq, Show, Generic)
 
 makePrisms ''EventData
@@ -80,6 +81,7 @@ taggedEventDataSchema =
       TeamFeatureGuestLinks -> tag _EdFeatureWithoutConfigAndLockStatusChanged (unnamed schema)
       TeamFeatureSndFactorPasswordChallenge -> tag _EdFeatureWithoutConfigAndLockStatusChanged (unnamed schema)
       TeamFeatureSearchVisibilityInbound -> tag _EdFeatureWithoutConfigAndLockStatusChanged (unnamed schema)
+      TeamFeatureMLS -> tag _EdFeatureMLSChanged (unnamed schema)
 
 eventObjectSchema :: ObjectSchema SwaggerDoc Event
 eventObjectSchema =

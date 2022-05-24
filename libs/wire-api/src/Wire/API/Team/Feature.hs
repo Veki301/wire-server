@@ -24,6 +24,7 @@ module Wire.API.Team.Feature
     TeamFeatureAppLockConfig (..),
     TeamFeatureSelfDeletingMessagesConfig (..),
     TeamFeatureClassifiedDomainsConfig (..),
+    TeamFeatureMLSConfig (..),
     TeamFeatureStatusValue (..),
     FeatureHasNoConfig,
     EnforceAppLock (..),
@@ -55,10 +56,12 @@ module Wire.API.Team.Feature
 where
 
 import qualified Cassandra.CQL as Cass
+import Control.Lens ((?~))
 import qualified Data.Attoparsec.ByteString as Parser
 import Data.ByteString.Conversion (FromByteString (..), ToByteString (..), fromByteString, toByteString')
 import Data.Domain (Domain)
 import Data.Either.Extra (maybeToEither)
+import Data.Id (UserId)
 import Data.Kind (Constraint)
 import Data.Schema
 import Data.String.Conversions (cs)
@@ -72,6 +75,8 @@ import Imports
 import Servant (FromHttpApiData (..))
 import Test.QuickCheck.Arbitrary (arbitrary)
 import Wire.API.Arbitrary (Arbitrary, GenericUniform (..))
+import Wire.API.Conversation.Protocol (ProtocolTag)
+import Wire.API.MLS.CipherSuite (CipherSuite)
 
 ----------------------------------------------------------------------
 -- TeamFeatureName
@@ -92,7 +97,6 @@ import Wire.API.Arbitrary (Arbitrary, GenericUniform (..))
 --   * FeatureFlags for server config file
 --   * Update the Arbitrary instance of FeatureFlags
 --       in libs/galley-types/test/unit/Test/Galley/Types.hs
---   * roleHiddenPermissions ChangeTeamFeature and ViewTeamFeature
 -- * add the feature status to `AllFeatureConfigs` (see below)
 --   * follow the type errors and fix them (e.g. in services/galley/src/Galley/API/Teams/Features.hs)
 -- * services/galley/schema/src/
@@ -136,6 +140,7 @@ data TeamFeatureName
   | TeamFeatureGuestLinks
   | TeamFeatureSndFactorPasswordChallenge
   | TeamFeatureSearchVisibilityInbound
+  | TeamFeatureMLS
   deriving stock (Eq, Show, Ord, Generic, Enum, Bounded, Typeable)
   deriving (Arbitrary) via (GenericUniform TeamFeatureName)
 
@@ -195,6 +200,10 @@ instance KnownTeamFeatureName 'TeamFeatureSearchVisibilityInbound where
   type KnownTeamFeatureNameSymbol 'TeamFeatureSearchVisibilityInbound = "searchVisibilityInbound"
   knownTeamFeatureName = TeamFeatureSearchVisibilityInbound
 
+instance KnownTeamFeatureName 'TeamFeatureMLS where
+  type KnownTeamFeatureNameSymbol 'TeamFeatureMLS = "mls"
+  knownTeamFeatureName = TeamFeatureMLS
+
 instance FromByteString TeamFeatureName where
   parser =
     Parser.takeByteString >>= \b ->
@@ -216,6 +225,7 @@ instance FromByteString TeamFeatureName where
         Right "conversationGuestLinks" -> pure TeamFeatureGuestLinks
         Right "sndFactorPasswordChallenge" -> pure TeamFeatureSndFactorPasswordChallenge
         Right "searchVisibilityInbound" -> pure TeamFeatureSearchVisibilityInbound
+        Right "mls" -> pure TeamFeatureMLS
         Right t -> fail $ "Invalid TeamFeatureName: " <> T.unpack t
 
 -- TODO: how do we make this consistent with 'KnownTeamFeatureNameSymbol'?  add a test for
@@ -234,6 +244,7 @@ instance ToByteString TeamFeatureName where
   builder TeamFeatureGuestLinks = "conversationGuestLinks"
   builder TeamFeatureSndFactorPasswordChallenge = "sndFactorPasswordChallenge"
   builder TeamFeatureSearchVisibilityInbound = "searchVisibilityInbound"
+  builder TeamFeatureMLS = "mls"
 
 instance ToSchema TeamFeatureName where
   schema =
@@ -331,6 +342,7 @@ type family TeamFeatureStatus (ps :: IncludeLockStatus) (a :: TeamFeatureName) :
   TeamFeatureStatus 'WithoutLockStatus 'TeamFeatureSndFactorPasswordChallenge = TeamFeatureStatusNoConfig
   TeamFeatureStatus 'WithLockStatus 'TeamFeatureSndFactorPasswordChallenge = TeamFeatureStatusNoConfigAndLockStatus
   TeamFeatureStatus _ 'TeamFeatureSearchVisibilityInbound = TeamFeatureStatusNoConfig
+  TeamFeatureStatus _ 'TeamFeatureMLS = TeamFeatureStatusNoConfig
 
 type family FeatureHasNoConfig (ps :: IncludeLockStatus) (a :: TeamFeatureName) :: Constraint where
   FeatureHasNoConfig 'WithLockStatus a = (TeamFeatureStatus 'WithLockStatus a ~ TeamFeatureStatusNoConfigAndLockStatus)
@@ -351,6 +363,7 @@ modelForTeamFeature name@TeamFeatureSelfDeletingMessages = modelTeamFeatureStatu
 modelForTeamFeature TeamFeatureGuestLinks = modelTeamFeatureStatusNoConfig
 modelForTeamFeature TeamFeatureSndFactorPasswordChallenge = modelTeamFeatureStatusNoConfig
 modelForTeamFeature TeamFeatureSearchVisibilityInbound = modelTeamFeatureStatusNoConfig
+modelForTeamFeature name@TeamFeatureMLS = modelTeamFeatureStatusWithConfig name modelTeamFeatureMLSConfig
 
 data AllFeatureConfigs = AllFeatureConfigs
   { afcLegalholdStatusInternal :: TeamFeatureStatus 'WithoutLockStatus 'TeamFeatureLegalHold,
@@ -579,6 +592,33 @@ modelTeamFeatureSelfDeletingMessagesConfig :: Doc.Model
 modelTeamFeatureSelfDeletingMessagesConfig =
   Doc.defineModel "TeamFeatureSelfDeletingMessagesConfig" $ do
     Doc.property "enforcedTimeoutSeconds" Doc.int32' $ Doc.description "optional; default: `0` (no enforcement)"
+
+----------------------------------------------------------------------
+-- TeamFeatureMLSConfig
+data TeamFeatureMLSConfig = TeamFeatureMLSConfig
+  { tfmlsProtocolToggleUsers :: [UserId],
+    tfmlsDefaultProtocol :: ProtocolTag,
+    tfmlsAllowedCipherSuites :: [CipherSuite],
+    tfmlsDefaultCipherSuite :: CipherSuite
+  }
+  deriving stock (Eq, Show, Generic)
+
+instance ToSchema TeamFeatureMLSConfig where
+  schema =
+    object "TeamFeatureMLSConfig" $
+      TeamFeatureMLSConfig
+        <$> tfmlsProtocolToggleUsers .= fieldWithDocModifier "protocolToggleUsers" (S.description ?~ "allowlist of users that may change protocols") (array schema)
+        <*> tfmlsDefaultProtocol .= field "defaultProtocol" schema
+        <*> tfmlsAllowedCipherSuites .= field "allowedCipherSuites" (array schema)
+        <*> tfmlsDefaultCipherSuite .= field "defaultCipherSuite" schema
+
+modelTeamFeatureMLSConfig :: Doc.Model
+modelTeamFeatureMLSConfig =
+  Doc.defineModel "TeamFeatureMLSConfig" $ do
+    Doc.property "protocolToggleUsers" (Doc.array Doc.string') $ Doc.description "allowlist of users that may change protocols"
+    Doc.property "defaultProtocol" Doc.string' $ Doc.description "default protocol, either \"proteus\" or \"mls\""
+    Doc.property "allowedCipherSuites" (Doc.array Doc.int32') $ Doc.description "cipher suite numbers,  See https://messaginglayersecurity.rocks/mls-protocol/draft-ietf-mls-protocol.html#table-5"
+    Doc.property "defaultCipherSuite" Doc.int32' $ Doc.description "cipher suite number. See https://messaginglayersecurity.rocks/mls-protocol/draft-ietf-mls-protocol.html#table-5"
 
 ----------------------------------------------------------------------
 -- LockStatus
