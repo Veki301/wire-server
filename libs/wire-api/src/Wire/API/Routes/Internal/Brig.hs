@@ -37,7 +37,7 @@ import Data.Id as Id
 import Data.Qualified (Qualified)
 import Data.Swagger (HasInfo (info), HasTitle (title), Swagger)
 import Imports hiding (head)
-import Servant hiding (Handler, JSON, addHeader, respond)
+import Servant hiding (Handler, JSON, WithStatus, addHeader, respond)
 import qualified Servant
 import Servant.Swagger (HasSwagger (toSwagger))
 import Servant.Swagger.Internal.Orphans ()
@@ -53,8 +53,7 @@ import qualified Wire.API.Routes.Internal.Galley.TeamFeatureNoConfigMulti as Mul
 import Wire.API.Routes.MultiVerb
 import Wire.API.Routes.Named
 import Wire.API.Routes.QualifiedCapture
-import Wire.API.Team.Feature (FeatureTag (TeamFeatureSearchVisibilityInbound))
-import qualified Wire.API.Team.Feature as ApiFt
+import Wire.API.Team.Feature
 import Wire.API.User
 
 type EJPDRequest =
@@ -82,7 +81,7 @@ type GetAccountFeatureConfig =
     :> Capture "uid" UserId
     :> "features"
     :> "conferenceCalling"
-    :> Get '[Servant.JSON] (ApiFt.TeamFeatureStatus 'ApiFt.WithoutLockStatus 'ApiFt.TeamFeatureConferenceCalling)
+    :> Get '[Servant.JSON] (WithStatus (FeatureConfig 'TeamFeatureConferenceCalling))
 
 type PutAccountFeatureConfig =
   Summary
@@ -91,7 +90,7 @@ type PutAccountFeatureConfig =
     :> Capture "uid" UserId
     :> "features"
     :> "conferenceCalling"
-    :> Servant.ReqBody '[Servant.JSON] (ApiFt.TeamFeatureStatus 'ApiFt.WithoutLockStatus 'ApiFt.TeamFeatureConferenceCalling)
+    :> Servant.ReqBody '[Servant.JSON] (WithStatusNoLock (FeatureConfig 'TeamFeatureConferenceCalling))
     :> Put '[Servant.JSON] NoContent
 
 type DeleteAccountFeatureConfig =
