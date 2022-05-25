@@ -505,7 +505,7 @@ setTeamSndFactorPasswordChallenge galley tid status = do
   put (galley . paths ["i", "teams", toByteString' tid, "features", toByteString' Public.TeamFeatureSndFactorPasswordChallenge] . contentJson . body js) !!! const 200 === statusCode
 
 setTeamFeatureLockStatus ::
-  forall (a :: Public.TeamFeatureName) m.
+  forall (a :: Public.FeatureTag) m.
   ( MonadCatch m,
     MonadIO m,
     MonadHttp m,

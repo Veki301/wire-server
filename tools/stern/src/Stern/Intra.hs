@@ -488,7 +488,7 @@ setBlacklistStatus status emailOrPhone = do
     statusToMethod True = POST
 
 getTeamFeatureFlag ::
-  forall (ps :: Public.IncludeLockStatus) (a :: Public.TeamFeatureName).
+  forall (ps :: Public.IncludeLockStatus) (a :: Public.FeatureTag).
   ( Public.KnownTeamFeatureName a,
     Typeable (Public.TeamFeatureStatus ps a),
     FromJSON (Public.TeamFeatureStatus ps a)
@@ -508,7 +508,7 @@ getTeamFeatureFlag tid = do
     _ -> throwE (mkError status502 "bad-upstream" "bad response")
 
 setTeamFeatureFlag ::
-  forall (a :: Public.TeamFeatureName).
+  forall (a :: Public.FeatureTag).
   ( Public.KnownTeamFeatureName a,
     ToJSON (Public.TeamFeatureStatus 'Public.WithoutLockStatus a)
   ) =>
@@ -531,7 +531,7 @@ setTeamFeatureFlag tid status = do
 
 getTeamFeatureFlagNoConfig ::
   TeamId ->
-  Public.TeamFeatureName ->
+  Public.FeatureTag ->
   Handler Public.TeamFeatureStatusNoConfig
 getTeamFeatureFlagNoConfig tid featureName = do
   info $ msg "Getting team feature status"
@@ -549,7 +549,7 @@ getTeamFeatureFlagNoConfig tid featureName = do
 
 setTeamFeatureFlagNoConfig ::
   TeamId ->
-  Public.TeamFeatureName ->
+  Public.FeatureTag ->
   Public.TeamFeatureStatusValue ->
   Handler ()
 setTeamFeatureFlagNoConfig tid featureName statusValue = do

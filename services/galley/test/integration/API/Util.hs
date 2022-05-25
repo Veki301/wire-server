@@ -1405,7 +1405,7 @@ registerRemoteConv convId originUser name othMembers = do
         rcReceiptMode = Nothing
       }
 
-getFeatureStatusMulti :: TeamFeatureName -> Multi.TeamFeatureNoConfigMultiRequest -> TestM ResponseLBS
+getFeatureStatusMulti :: FeatureTag -> Multi.TeamFeatureNoConfigMultiRequest -> TestM ResponseLBS
 getFeatureStatusMulti feat req = do
   g <- view tsGalley
   post

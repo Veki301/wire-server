@@ -30,7 +30,7 @@ import Polysemy.Input
 import Wire.API.Team.Feature
 
 getFeatureStatusNoConfigAndLockStatus ::
-  forall (a :: TeamFeatureName) m.
+  forall (a :: FeatureTag) m.
   (MonadClient m, FeatureHasNoConfig 'WithoutLockStatus a, HasStatusCol a, HasLockStatusCol a) =>
   Proxy a ->
   TeamId ->
@@ -50,7 +50,7 @@ getFeatureStatusNoConfigAndLockStatus _ tid = do
           <> " from team_features where team_id = ?"
 
 getFeatureStatusNoConfig ::
-  forall (a :: TeamFeatureName) m.
+  forall (a :: FeatureTag) m.
   ( MonadClient m,
     FeatureHasNoConfig 'WithoutLockStatus a,
     HasStatusCol a
@@ -67,7 +67,7 @@ getFeatureStatusNoConfig _ tid = do
     select = fromString $ "select " <> statusCol @a <> " from team_features where team_id = ?"
 
 getFeatureStatusNoConfigMulti ::
-  forall (a :: TeamFeatureName) m.
+  forall (a :: FeatureTag) m.
   ( MonadClient m,
     FeatureHasNoConfig 'WithoutLockStatus a,
     HasStatusCol a
@@ -88,7 +88,7 @@ getFeatureStatusNoConfigMulti _ tids = do
     select = fromString $ "select team_id, " <> statusCol @a <> ", writetime(" <> statusCol @a <> ") from team_features where team_id in ?"
 
 setFeatureStatusNoConfig ::
-  forall (a :: TeamFeatureName) m.
+  forall (a :: FeatureTag) m.
   ( MonadClient m,
     FeatureHasNoConfig 'WithoutLockStatus a,
     HasStatusCol a
@@ -185,7 +185,7 @@ setSelfDeletingMessagesStatus tid status = do
           <> "values (?, ?, ?)"
 
 setLockStatus ::
-  forall (a :: TeamFeatureName) m.
+  forall (a :: FeatureTag) m.
   ( MonadClient m,
     HasLockStatusCol a
   ) =>
@@ -203,7 +203,7 @@ setLockStatus _ tid (LockStatus lockStatus) = do
         "insert into team_features (team_id, " <> lockStatusCol @a <> ") values (?, ?)"
 
 getLockStatus ::
-  forall (a :: TeamFeatureName) m.
+  forall (a :: FeatureTag) m.
   ( MonadClient m,
     MaybeHasLockStatusCol a
   ) =>

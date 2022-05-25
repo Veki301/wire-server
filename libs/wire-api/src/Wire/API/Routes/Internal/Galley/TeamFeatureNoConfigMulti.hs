@@ -28,7 +28,7 @@ import Data.Id
 import Data.Schema
 import qualified Data.Swagger as S
 import Imports
-import Wire.API.Team.Feature (TeamFeatureName)
+import Wire.API.Team.Feature (FeatureTag)
 import qualified Wire.API.Team.Feature as Public
 
 newtype TeamFeatureNoConfigMultiRequest = TeamFeatureNoConfigMultiRequest
@@ -43,7 +43,7 @@ instance ToSchema TeamFeatureNoConfigMultiRequest where
       TeamFeatureNoConfigMultiRequest
         <$> teams .= field "teams" (array schema)
 
-newtype TeamFeatureNoConfigMultiResponse (a :: TeamFeatureName) = TeamFeatureNoConfigMultiResponse
+newtype TeamFeatureNoConfigMultiResponse (a :: FeatureTag) = TeamFeatureNoConfigMultiResponse
   { teamsStatuses :: [TeamStatus a]
   }
   deriving (Show, Eq)
@@ -55,7 +55,7 @@ instance ToSchema (TeamFeatureNoConfigMultiResponse a) where
       TeamFeatureNoConfigMultiResponse
         <$> teamsStatuses .= field "default_status" (array schema)
 
-data TeamStatus (a :: TeamFeatureName) = TeamStatus
+data TeamStatus (a :: FeatureTag) = TeamStatus
   { team :: TeamId,
     status :: Public.TeamFeatureStatusValue,
     writeTime :: Maybe Int64
@@ -71,7 +71,7 @@ instance ToSchema (TeamStatus a) where
         <*> status .= field "status" schema
         <*> writeTime .= maybe_ (optField "writetime" schema)
 
-data TeamStatusUpdate (a :: TeamFeatureName) = TeamStatusUpdate
+data TeamStatusUpdate (a :: FeatureTag) = TeamStatusUpdate
   { tsuTeam :: TeamId,
     tsuStatus :: Public.TeamFeatureStatusValue,
     tsuWriteTime :: Int64

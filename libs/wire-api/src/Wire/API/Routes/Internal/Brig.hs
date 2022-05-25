@@ -53,7 +53,7 @@ import qualified Wire.API.Routes.Internal.Galley.TeamFeatureNoConfigMulti as Mul
 import Wire.API.Routes.MultiVerb
 import Wire.API.Routes.Named
 import Wire.API.Routes.QualifiedCapture
-import Wire.API.Team.Feature (TeamFeatureName (TeamFeatureSearchVisibilityInbound))
+import Wire.API.Team.Feature (FeatureTag (TeamFeatureSearchVisibilityInbound))
 import qualified Wire.API.Team.Feature as ApiFt
 import Wire.API.User
 

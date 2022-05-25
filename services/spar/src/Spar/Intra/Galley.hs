@@ -33,7 +33,7 @@ import Spar.Error
 import qualified System.Logger.Class as Log
 import Wire.API.Team.Feature
   ( IncludeLockStatus (..),
-    TeamFeatureName (..),
+    FeatureTag (..),
     TeamFeatureStatus,
     TeamFeatureStatusNoConfig (..),
     TeamFeatureStatusValue (..),

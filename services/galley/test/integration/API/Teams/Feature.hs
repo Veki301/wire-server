@@ -51,7 +51,7 @@ import Wire.API.Event.FeatureConfig (EventData (..))
 import qualified Wire.API.Event.FeatureConfig as FeatureConfig
 import Wire.API.Internal.Notification (Notification)
 import Wire.API.Routes.Internal.Galley.TeamFeatureNoConfigMulti as Multi
-import Wire.API.Team.Feature (TeamFeatureName (..), TeamFeatureStatusValue (..))
+import Wire.API.Team.Feature (FeatureTag (..), TeamFeatureStatusValue (..))
 import qualified Wire.API.Team.Feature as Public
 
 tests :: IO TestSetup -> TestTree
@@ -310,7 +310,7 @@ testClassifiedDomainsDisabled = do
     getClassifiedDomainsFeatureConfig member expected
 
 testSimpleFlag ::
-  forall (a :: Public.TeamFeatureName).
+  forall (a :: Public.FeatureTag).
   ( HasCallStack,
     Typeable a,
     Public.FeatureHasNoConfig 'Public.WithoutLockStatus a,
@@ -373,7 +373,7 @@ testSimpleFlag defaultValue = do
   getFlag defaultValue
 
 testSimpleFlagWithLockStatus ::
-  forall (a :: Public.TeamFeatureName).
+  forall (a :: Public.FeatureTag).
   ( HasCallStack,
     Typeable a,
     Public.FeatureHasNoConfig 'Public.WithLockStatus a,
@@ -672,7 +672,7 @@ testAllFeatures = do
           toS TeamFeatureGuestLinks .= Public.TeamFeatureStatusNoConfigAndLockStatus TeamFeatureEnabled Public.Unlocked,
           toS TeamFeatureSndFactorPasswordChallenge .= Public.TeamFeatureStatusNoConfigAndLockStatus TeamFeatureDisabled Public.Locked
         ]
-    toS :: TeamFeatureName -> Aeson.Key
+    toS :: FeatureTag -> Aeson.Key
     toS = AesonKey.fromText . TE.decodeUtf8 . toByteString'
 
 testFeatureConfigConsistency :: TestM ()
@@ -761,7 +761,7 @@ assertFlagForbidden res = do
     fmap label . responseJsonMaybe === const (Just "no-team-member")
 
 assertFlagNoConfig ::
-  forall (a :: Public.TeamFeatureName).
+  forall (a :: Public.FeatureTag).
   ( HasCallStack,
     Typeable a,
     Public.FeatureHasNoConfig 'Public.WithoutLockStatus a,
@@ -780,7 +780,7 @@ assertFlagNoConfig res expected = do
       === const (Right expected)
 
 assertFlagNoConfigWithLockStatus ::
-  forall (a :: Public.TeamFeatureName).
+  forall (a :: Public.FeatureTag).
   ( HasCallStack,
     Typeable a,
     Public.FeatureHasNoConfig 'Public.WithLockStatus a,
@@ -818,14 +818,14 @@ assertFlagWithConfig response expected = do
     fmap Public.tfwcStatus rJson @?= (Right . Public.tfwcStatus $ expected)
     fmap Public.tfwcConfig rJson @?= (Right . Public.tfwcConfig $ expected)
 
-wsAssertFeatureConfigUpdate :: Public.TeamFeatureName -> Public.TeamFeatureStatusValue -> Notification -> IO ()
+wsAssertFeatureConfigUpdate :: Public.FeatureTag -> Public.TeamFeatureStatusValue -> Notification -> IO ()
 wsAssertFeatureConfigUpdate teamFeature status notification = do
   let e :: FeatureConfig.Event = List1.head (WS.unpackPayload notification)
   FeatureConfig._eventType e @?= FeatureConfig.Update
   FeatureConfig._eventFeatureName e @?= teamFeature
   FeatureConfig._eventData e @?= EdFeatureWithoutConfigChanged (Public.TeamFeatureStatusNoConfig status)
 
-wsAssertFeatureConfigWithLockStatusUpdate :: Public.TeamFeatureName -> Public.TeamFeatureStatusValue -> Public.LockStatusValue -> Notification -> IO ()
+wsAssertFeatureConfigWithLockStatusUpdate :: Public.FeatureTag -> Public.TeamFeatureStatusValue -> Public.LockStatusValue -> Notification -> IO ()
 wsAssertFeatureConfigWithLockStatusUpdate teamFeature status lockStatus notification = do
   let e :: FeatureConfig.Event = List1.head (WS.unpackPayload notification)
   FeatureConfig._eventType e @?= FeatureConfig.Update

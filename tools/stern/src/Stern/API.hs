@@ -631,7 +631,7 @@ getTeamAdminInfo :: TeamId -> Handler Response
 getTeamAdminInfo = liftM (json . toAdminInfo) . Intra.getTeamInfo
 
 getTeamFeatureFlagH ::
-  forall (a :: Public.TeamFeatureName).
+  forall (a :: Public.FeatureTag).
   ( Public.KnownTeamFeatureName a,
     FromJSON (Public.TeamFeatureStatus 'Public.WithoutLockStatus a),
     ToJSON (Public.TeamFeatureStatus 'Public.WithoutLockStatus a),
@@ -643,7 +643,7 @@ getTeamFeatureFlagH tid =
   json <$> Intra.getTeamFeatureFlag @'Public.WithoutLockStatus @a tid
 
 setTeamFeatureFlagH ::
-  forall (a :: Public.TeamFeatureName).
+  forall (a :: Public.FeatureTag).
   ( Public.KnownTeamFeatureName a,
     FromJSON (Public.TeamFeatureStatus 'Public.WithoutLockStatus a),
     ToJSON (Public.TeamFeatureStatus 'Public.WithoutLockStatus a)
@@ -655,13 +655,13 @@ setTeamFeatureFlagH (tid ::: req ::: _) = do
   empty <$ Intra.setTeamFeatureFlag @a tid status
 
 getTeamFeatureFlagNoConfigH ::
-  TeamId ::: Public.TeamFeatureName ->
+  TeamId ::: Public.FeatureTag ->
   Handler Response
 getTeamFeatureFlagNoConfigH (tid ::: featureName) =
   json <$> Intra.getTeamFeatureFlagNoConfig tid featureName
 
 setTeamFeatureNoConfigFlagH ::
-  TeamId ::: Public.TeamFeatureName ::: Public.TeamFeatureStatusValue ->
+  TeamId ::: Public.FeatureTag ::: Public.TeamFeatureStatusValue ->
   Handler Response
 setTeamFeatureNoConfigFlagH (tid ::: featureName ::: statusValue) =
   json <$> Intra.setTeamFeatureFlagNoConfig tid featureName statusValue
@@ -792,7 +792,7 @@ noSuchUser :: Maybe a -> Handler a
 noSuchUser = ifNothing (mkError status404 "no-user" "No such user")
 
 mkFeaturePutGetRoute ::
-  forall (a :: Public.TeamFeatureName).
+  forall (a :: Public.FeatureTag).
   ( Public.KnownTeamFeatureName a,
     FromJSON (Public.TeamFeatureStatus 'Public.WithoutLockStatus a),
     ToJSON (Public.TeamFeatureStatus 'Public.WithoutLockStatus a),

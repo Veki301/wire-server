@@ -51,7 +51,7 @@ typeTeamFeatureNameNoConfig =
             Public.TeamFeatureClassifiedDomains,
             Public.TeamFeatureConferenceCalling
             -- you can keep this list updated by pulling all constructors `c`
-            -- `Public.TeamFeatureName` for which `TeamFeatureStatus c ~
+            -- `Public.FeatureTag` for which `TeamFeatureStatus c ~
             -- TeamFeatureStatusNoConfig`
             --
             -- TODO: since we can't do this in code without dependent types, make an assertion

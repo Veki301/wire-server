@@ -120,8 +120,8 @@ type FeatureSetter f r =
 -- | For team-settings, to administrate team feature configuration.  Here we have an admin uid
 -- and a team id, but no uid of the member for which the feature config holds.
 getFeatureStatus ::
-  forall (ps :: IncludeLockStatus) (a :: TeamFeatureName) r.
-  ( KnownTeamFeatureName a,
+  forall (ps :: IncludeLockStatus) (a :: FeatureTag) r.
+  ( KnownFeatureTag a,
     Members
       '[ ErrorS OperationDenied,
          ErrorS 'NotATeamMember,
@@ -145,8 +145,8 @@ getFeatureStatus (Tagged getter) doauth tid = do
 
 -- | For team-settings, like 'getFeatureStatus'.
 setFeatureStatus ::
-  forall (a :: TeamFeatureName) r.
-  ( KnownTeamFeatureName a,
+  forall (a :: FeatureTag) r.
+  ( KnownFeatureTag a,
     MaybeHasLockStatusCol a,
     Members
       '[ ErrorS 'NotATeamMember,
@@ -173,8 +173,8 @@ setFeatureStatus (Tagged setter) doauth tid status = do
 
 -- | Setting lock status can only be done through the internal API and therefore doesn't require auth.
 setLockStatus ::
-  forall (a :: TeamFeatureName) r.
-  ( KnownTeamFeatureName a,
+  forall (a :: FeatureTag) r.
+  ( KnownFeatureTag a,
     HasLockStatusCol a,
     Members
       [ ErrorS 'NotATeamMember,
@@ -193,8 +193,8 @@ setLockStatus tid lockStatusUpdate = do
 
 -- | For individual users to get feature config for their account (personal or team).
 getFeatureConfig ::
-  forall (ps :: IncludeLockStatus) (a :: TeamFeatureName) r.
-  ( KnownTeamFeatureName a,
+  forall (ps :: IncludeLockStatus) (a :: FeatureTag) r.
+  ( KnownFeatureTag a,
     Members
       '[ ErrorS 'NotATeamMember,
          ErrorS OperationDenied,
@@ -290,7 +290,7 @@ getAllFeatureConfigsInternal byUserOrTeam =
     <*> unTagged getSndFactorPasswordChallengeInternal byUserOrTeam
 
 getFeatureStatusNoConfig ::
-  forall (a :: TeamFeatureName) r.
+  forall (a :: FeatureTag) r.
   ( FeatureHasNoConfig 'WithoutLockStatus a,
     HasStatusCol a,
     Member TeamFeatureStore r
@@ -303,8 +303,8 @@ getFeatureStatusNoConfig getDefault tid = do
   fromMaybe defaultStatus <$> TeamFeatures.getFeatureStatusNoConfig @a tid
 
 setFeatureStatusNoConfig ::
-  forall (a :: TeamFeatureName) r.
-  ( KnownTeamFeatureName a,
+  forall (a :: FeatureTag) r.
+  ( KnownFeatureTag a,
     FeatureHasNoConfig 'WithoutLockStatus a,
     HasStatusCol a,
     Members '[GundeckAccess, TeamFeatureStore, TeamStore, P.TinyLog] r
@@ -315,7 +315,7 @@ setFeatureStatusNoConfig applyState = Tagged $ \tid status -> do
   applyState (tfwoStatus status) tid
   newStatus <- TeamFeatures.setFeatureStatusNoConfig @a tid status
   pushFeatureConfigEvent tid $
-    Event.Event Event.Update (knownTeamFeatureName @a) (EdFeatureWithoutConfigChanged newStatus)
+    Event.Event Event.Update (knownFeatureTag @a) (EdFeatureWithoutConfigChanged newStatus)
   pure newStatus
 
 getSSOStatusInternal ::
@@ -499,8 +499,8 @@ determineFeatureStatus cfgDefault lockStatus mbFeatureStatus = case (lockStatus,
   (Locked, _) -> cfgDefault {tfwoapsLockStatus = lockStatus}
 
 getFeatureStatusWithDefaultConfig ::
-  forall (a :: TeamFeatureName) r.
-  ( KnownTeamFeatureName a,
+  forall (a :: FeatureTag) r.
+  ( KnownFeatureTag a,
     HasStatusCol a,
     FeatureHasNoConfig 'WithoutLockStatus a,
     Members '[Input Opts, TeamFeatureStore] r
@@ -798,7 +798,7 @@ setTeamSearchVisibilityInboundInternal = Tagged $ \tid status -> do
 
 getFeatureStatusMulti ::
   forall f r.
-  ( KnownTeamFeatureName f,
+  ( KnownFeatureTag f,
     FeatureHasNoConfig 'WithoutLockStatus f,
     HasStatusCol f,
     Members
@@ -837,7 +837,7 @@ getTeamSearchVisibilityInboundInternalMulti =
 
 -- TODO(fisx): move this function to a more suitable place / module.
 guardLockStatus ::
-  forall (a :: TeamFeatureName) r.
+  forall (a :: FeatureTag) r.
   ( MaybeHasLockStatusCol a,
     Member TeamFeatureStore r,
     Member (Error TeamFeatureError) r

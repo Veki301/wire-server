@@ -69,14 +69,14 @@ putLegalHoldEnabledInternal' g tid statusValue =
 
 getTeamFeatureFlagInternal ::
   (HasGalley m, MonadIO m, MonadHttp m) =>
-  Public.TeamFeatureName ->
+  Public.FeatureTag ->
   TeamId ->
   m ResponseLBS
 getTeamFeatureFlagInternal feature tid = do
   g <- viewGalley
   getTeamFeatureFlagInternalWithGalley feature g tid
 
-getTeamFeatureFlagInternalWithGalley :: (MonadIO m, MonadHttp m, HasCallStack) => Public.TeamFeatureName -> (Request -> Request) -> TeamId -> m ResponseLBS
+getTeamFeatureFlagInternalWithGalley :: (MonadIO m, MonadHttp m, HasCallStack) => Public.FeatureTag -> (Request -> Request) -> TeamId -> m ResponseLBS
 getTeamFeatureFlagInternalWithGalley feature g tid = do
   get $
     g
@@ -84,7 +84,7 @@ getTeamFeatureFlagInternalWithGalley feature g tid = do
 
 getTeamFeatureFlag ::
   (HasGalley m, MonadIO m, MonadHttp m, HasCallStack) =>
-  Public.TeamFeatureName ->
+  Public.FeatureTag ->
   UserId ->
   TeamId ->
   m ResponseLBS
@@ -115,19 +115,19 @@ getAllTeamFeaturesPersonal uid = do
       . paths ["feature-configs"]
       . zUser uid
 
-getTeamFeatureFlagWithGalley :: (MonadIO m, MonadHttp m, HasCallStack) => Public.TeamFeatureName -> (Request -> Request) -> UserId -> TeamId -> m ResponseLBS
+getTeamFeatureFlagWithGalley :: (MonadIO m, MonadHttp m, HasCallStack) => Public.FeatureTag -> (Request -> Request) -> UserId -> TeamId -> m ResponseLBS
 getTeamFeatureFlagWithGalley feature galley uid tid = do
   get $
     galley
       . paths ["teams", toByteString' tid, "features", toByteString' feature]
       . zUser uid
 
-getFeatureConfig :: (HasCallStack, HasGalley m, MonadIO m, MonadHttp m) => Public.TeamFeatureName -> UserId -> m ResponseLBS
+getFeatureConfig :: (HasCallStack, HasGalley m, MonadIO m, MonadHttp m) => Public.FeatureTag -> UserId -> m ResponseLBS
 getFeatureConfig feature uid = do
   g <- viewGalley
   getFeatureConfigWithGalley feature g uid
 
-getFeatureConfigWithGalley :: (MonadIO m, MonadHttp m, HasCallStack) => Public.TeamFeatureName -> (Request -> Request) -> UserId -> m ResponseLBS
+getFeatureConfigWithGalley :: (MonadIO m, MonadHttp m, HasCallStack) => Public.FeatureTag -> (Request -> Request) -> UserId -> m ResponseLBS
 getFeatureConfigWithGalley feature galley uid = do
   get $
     galley
@@ -147,9 +147,9 @@ getAllFeatureConfigsWithGalley galley uid = do
       . zUser uid
 
 putTeamFeatureFlagWithGalley ::
-  forall (a :: Public.TeamFeatureName).
+  forall (a :: Public.FeatureTag).
   ( HasCallStack,
-    Public.KnownTeamFeatureName a,
+    Public.KnownFeatureTag a,
     ToJSON (Public.TeamFeatureStatus 'Public.WithoutLockStatus a)
   ) =>
   (Request -> Request) ->
@@ -160,14 +160,14 @@ putTeamFeatureFlagWithGalley ::
 putTeamFeatureFlagWithGalley galley uid tid status =
   put $
     galley
-      . paths ["teams", toByteString' tid, "features", toByteString' (Public.knownTeamFeatureName @a)]
+      . paths ["teams", toByteString' tid, "features", toByteString' (Public.knownFeatureTag @a)]
       . json status
       . zUser uid
 
 putTeamFeatureFlagInternal ::
-  forall (a :: Public.TeamFeatureName).
+  forall (a :: Public.FeatureTag).
   ( HasCallStack,
-    Public.KnownTeamFeatureName a,
+    Public.KnownFeatureTag a,
     ToJSON (Public.TeamFeatureStatus 'Public.WithoutLockStatus a)
   ) =>
   (Request -> Request) ->
@@ -179,11 +179,11 @@ putTeamFeatureFlagInternal reqmod tid status = do
   putTeamFeatureFlagInternalWithGalleyAndMod @a g reqmod tid status
 
 putTeamFeatureFlagInternalWithGalleyAndMod ::
-  forall (a :: Public.TeamFeatureName) m.
+  forall (a :: Public.FeatureTag) m.
   ( MonadIO m,
     MonadHttp m,
     HasCallStack,
-    Public.KnownTeamFeatureName a,
+    Public.KnownFeatureTag a,
     ToJSON (Public.TeamFeatureStatus 'Public.WithoutLockStatus a)
   ) =>
   (Request -> Request) ->
@@ -194,14 +194,14 @@ putTeamFeatureFlagInternalWithGalleyAndMod ::
 putTeamFeatureFlagInternalWithGalleyAndMod galley reqmod tid status =
   put $
     galley
-      . paths ["i", "teams", toByteString' tid, "features", toByteString' (Public.knownTeamFeatureName @a)]
+      . paths ["i", "teams", toByteString' tid, "features", toByteString' (Public.knownFeatureTag @a)]
       . json status
       . reqmod
 
 setLockStatusInternal ::
-  forall (a :: Public.TeamFeatureName).
+  forall (a :: Public.FeatureTag).
   ( HasCallStack,
-    Public.KnownTeamFeatureName a,
+    Public.KnownFeatureTag a,
     ToJSON Public.LockStatusValue
   ) =>
   (Request -> Request) ->
@@ -212,7 +212,7 @@ setLockStatusInternal reqmod tid lockStatus = do
   galley <- view tsGalley
   put $
     galley
-      . paths ["i", "teams", toByteString' tid, "features", toByteString' (Public.knownTeamFeatureName @a), toByteString' lockStatus]
+      . paths ["i", "teams", toByteString' tid, "features", toByteString' (Public.knownFeatureTag @a), toByteString' lockStatus]
       . reqmod
 
 getGuestLinkStatus ::
@@ -224,5 +224,5 @@ getGuestLinkStatus ::
 getGuestLinkStatus galley u cid =
   get $
     galley
-      . paths ["conversations", toByteString' cid, "features", toByteString' (Public.knownTeamFeatureName @'Public.TeamFeatureGuestLinks)]
+      . paths ["conversations", toByteString' cid, "features", toByteString' (Public.knownFeatureTag @'Public.TeamFeatureGuestLinks)]
       . zUser u

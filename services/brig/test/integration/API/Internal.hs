@@ -298,7 +298,7 @@ testKpcPutPut brig = do
   mqConv <- kpcGet brig ref
   liftIO $ assertEqual "Put x; Put y ~= Put y" (Just qConv2) mqConv
 
-getFeatureConfig :: (MonadIO m, MonadHttp m, HasCallStack) => ApiFt.TeamFeatureName -> (Request -> Request) -> UserId -> m ResponseLBS
+getFeatureConfig :: (MonadIO m, MonadHttp m, HasCallStack) => ApiFt.FeatureTag -> (Request -> Request) -> UserId -> m ResponseLBS
 getFeatureConfig feature galley uid = do
   get $ galley . paths ["feature-configs", toByteString' feature] . zUser uid
 

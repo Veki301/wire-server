@@ -35,7 +35,7 @@ import Wire.API.Team.Feature (TeamFeatureAppLockConfig, TeamFeatureClassifiedDom
 
 data Event = Event
   { _eventType :: EventType,
-    _eventFeatureName :: TeamFeatureName,
+    _eventFeatureName :: FeatureTag,
     _eventData :: EventData
   }
   deriving (Eq, Show, Generic)
@@ -60,7 +60,7 @@ data EventData
 
 makePrisms ''EventData
 
-taggedEventDataSchema :: ObjectSchema SwaggerDoc (TeamFeatureName, EventData)
+taggedEventDataSchema :: ObjectSchema SwaggerDoc (FeatureTag, EventData)
 taggedEventDataSchema =
   bind
     (fst .= field "name" schema)
@@ -87,7 +87,7 @@ eventObjectSchema =
     <$> (_eventFeatureName &&& _eventData) .= taggedEventDataSchema
     <*> _eventType .= field "type" schema
   where
-    mkEvent :: (TeamFeatureName, EventData) -> EventType -> Event
+    mkEvent :: (FeatureTag, EventData) -> EventType -> Event
     mkEvent (feature, eventData) eventType = Event eventType feature eventData
 
 instance ToSchema Event where

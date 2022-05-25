@@ -99,7 +99,7 @@ import System.Logger.Class (Logger, MonadLogger (..), field, info, msg, val, (++
 import URI.ByteString (URI, serializeURIRef)
 import Util.Options (Endpoint, epHost, epPort)
 import qualified Wire.API.Routes.Internal.Galley.TeamFeatureNoConfigMulti as Multi
-import Wire.API.Team.Feature (TeamFeatureName (..))
+import Wire.API.Team.Feature (FeatureTag (..))
 import qualified Wire.API.User as User
 import Wire.API.User.Search (Sso (..))
 
