@@ -21,7 +21,10 @@
 -- with this program. If not, see <https://www.gnu.org/licenses/>.
 
 module Wire.API.Team.Feature
-  (
+  ( FeatureConfig (..),
+    FeatureTag (..),
+    WithStatus (..),
+    WithStatusNoLock (..),
   )
 where
 
@@ -479,10 +482,6 @@ instance Arbitrary AllFeatureConfigs where
 ----------------------------------------------------------------------
 -- WithStatus
 
--- | The support for disabled features with configs is intentional:
--- for instance, we want to be able to keep the config of a feature
--- that is turned on and off occasionally, and so not force the admin
--- to recreate the config every time it's turned on.
 data WithStatus (cfg :: *) = WithStatus
   { wsStatus :: FeatureStatus,
     wsLockStatus :: LockStatus,
@@ -510,6 +509,25 @@ instance ToSchema cfg => ToSchema (WithStatus cfg) where
     where
       inner = schema @cfg
       name = fromMaybe "" (getName (schemaDoc inner)) <> ".WithStatus"
+
+data WithStatusNoLock (cfg :: *) = WithStatusNoLock
+  { wssStatus :: FeatureStatus,
+    wssConfig :: cfg
+  }
+  deriving stock (Eq, Show, Generic, Typeable, Functor)
+  deriving (ToJSON, FromJSON, S.ToSchema) via (Schema (WithStatusNoLock cfg))
+
+instance ToSchema cfg => ToSchema (WithStatusNoLock cfg) where
+  schema =
+    object name $
+      WithStatusNoLock
+        <$> wssStatus .= field "status" schema
+        <*> wssConfig .= field "config" inner
+    where
+      inner = schema @cfg
+      name = fromMaybe "" (getName (schemaDoc inner)) <> ".WithStatusNoLock"
+
+--------------------------------------------------------------------------------
 
 data family FeatureConfig (tag :: FeatureTag)
 
