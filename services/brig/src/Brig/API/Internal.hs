@@ -75,6 +75,7 @@ import Network.Wai.Routing hiding (toList)
 import Network.Wai.Utilities as Utilities
 import Network.Wai.Utilities.ZAuth (zauthConnId, zauthUserId)
 import Polysemy
+import qualified Polysemy.Error as P
 import Servant hiding (Handler, JSON, addHeader, respond)
 import Servant.Swagger.Internal.Orphans ()
 import Servant.Swagger.UI
@@ -199,7 +200,8 @@ swaggerDocsAPI = swaggerSchemaUIServer BrigIRoutes.swaggerDoc
 
 sitemap ::
   Members
-    '[ PasswordResetStore,
+    '[ P.Error ReAuthError,
+       PasswordResetStore,
        PasswordResetSupply,
        UserQuery
      ]

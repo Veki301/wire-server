@@ -26,7 +26,11 @@ import Data.Handle
 import Data.Id
 import Data.Json.Util
 import Imports
+import Network.HTTP.Types.Status
+import qualified Network.Wai.Utilities.Error as Wai
 import Polysemy
+import Wire.API.Error
+import qualified Wire.API.Error.Brig as E
 
 type Activated = Bool
 
@@ -96,6 +100,56 @@ type UserRowInsert =
   )
 
 deriving instance Show UserRowInsert
+
+-- | Authentication errors.
+data AuthError
+  = AuthInvalidUser
+  | AuthInvalidCredentials
+  | AuthSuspended
+  | AuthEphemeral
+  | AuthPendingInvitation
+
+instance APIError AuthError where
+  toWai AuthInvalidUser = errorToWai @'E.BadCredentials
+  toWai AuthInvalidCredentials = errorToWai @'E.BadCredentials
+  toWai AuthSuspended = accountSuspended
+  toWai AuthEphemeral = accountEphemeral
+  toWai AuthPendingInvitation = accountPending
+
+-- TODO(md): all the Wai.Error values in this module have been copied from
+-- Brig.API.Error to avoid a cycle in module imports. Fix that.
+accountSuspended :: Wai.Error
+accountSuspended = Wai.mkError status403 "suspended" "Account suspended."
+
+accountEphemeral :: Wai.Error
+accountEphemeral = Wai.mkError status403 "ephemeral" "Account is ephemeral."
+
+accountPending :: Wai.Error
+accountPending = Wai.mkError status403 "pending-activation" "Account pending activation."
+
+-- | Re-authentication errors.
+data ReAuthError
+  = ReAuthError !AuthError
+  | ReAuthMissingPassword
+  | ReAuthCodeVerificationRequired
+  | ReAuthCodeVerificationNoPendingCode
+  | ReAuthCodeVerificationNoEmail
+
+instance APIError ReAuthError where
+  toWai (ReAuthError e) = toWai e
+  toWai ReAuthMissingPassword = errorToWai @'E.MissingAuth
+  toWai ReAuthCodeVerificationRequired = verificationCodeRequired
+  toWai ReAuthCodeVerificationNoPendingCode = verificationCodeNoPendingCode
+  toWai ReAuthCodeVerificationNoEmail = verificationCodeNoEmail
+
+verificationCodeRequired :: Wai.Error
+verificationCodeRequired = Wai.mkError status403 "code-authentication-required" "Verification code required."
+
+verificationCodeNoPendingCode :: Wai.Error
+verificationCodeNoPendingCode = Wai.mkError status403 "code-authentication-failed" "Code authentication failed (no such code)."
+
+verificationCodeNoEmail :: Wai.Error
+verificationCodeNoEmail = Wai.mkError status403 "code-authentication-failed" "Code authentication failed (no such email)."
 
 data UserQuery m a where
   GetId :: UserId -> UserQuery m (Maybe UserId) -- idSelect

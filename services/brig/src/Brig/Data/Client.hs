@@ -57,6 +57,7 @@ import Brig.App
 import Brig.Data.Instances ()
 import Brig.Data.User (AuthError (..), ReAuthError (..))
 import qualified Brig.Data.User as User
+import Brig.Sem.UserQuery.Cassandra
 import Brig.Types.Instances ()
 import Brig.Types.User.Auth (CookieLabel)
 import Brig.User.Auth.DB.Instances ()
@@ -71,6 +72,7 @@ import Control.Retry
 import qualified Data.ByteString.Base64 as B64
 import Data.ByteString.Conversion (toByteString, toByteString')
 import qualified Data.ByteString.Lazy as LBS
+import Data.Either.Combinators
 import qualified Data.HashMap.Strict as HashMap
 import Data.Id
 import Data.Json.Util (UTCTimeMillis, toUTCTimeMillis)
@@ -81,6 +83,8 @@ import qualified Data.Set as Set
 import qualified Data.Text as Text
 import qualified Data.UUID as UUID
 import Imports
+import Polysemy hiding (run)
+import Polysemy.Error
 import System.CryptoBox (Result (Success))
 import qualified System.CryptoBox as CryptoBox
 import System.Logger.Class (field, msg, val)
@@ -124,6 +128,7 @@ addClient ::
 addClient = addClientWithReAuthPolicy reAuthForNewClients
 
 addClientWithReAuthPolicy ::
+  forall m.
   (MonadClient m, MonadReader Brig.App.Env m) =>
   ReAuthPolicy ->
   UserId ->
@@ -138,9 +143,15 @@ addClientWithReAuthPolicy reAuthPolicy u newId c maxPermClients loc cps = do
   let typed = filter ((== newClientType c) . clientType) clients
   let count = length typed
   let upsert = any exists typed
-  when (reAuthPolicy count upsert) $
-    fmapLT ClientReAuthError $
-      User.reauthenticate u (newClientPassword c)
+  when (reAuthPolicy count upsert) $ do
+    o <-
+      lift
+        . runM
+        . userQueryToCassandra @m @'[Embed m]
+        $ runError
+          . mapError ClientReAuthError
+          $ User.reauthenticate u (newClientPassword c)
+    whenLeft o throwE
   let capacity = fmap (+ (- count)) limit
   unless (maybe True (> 0) capacity || upsert) $
     throwE TooManyClients

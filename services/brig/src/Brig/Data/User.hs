@@ -77,7 +77,7 @@ import Brig.App (Env, currentTime, settings, viewFederationDomain, zauthEnv)
 import Brig.Data.Instances ()
 import Brig.Options
 import Brig.Password
-import Brig.Sem.UserQuery (UserQuery, getId, getLocale, getName, getUsers)
+import Brig.Sem.UserQuery (AuthError (..), ReAuthError (..), UserQuery, getAuthentication, getId, getLocale, getName, getUsers)
 import Brig.Types
 import Brig.Types.Intra
 import qualified Brig.ZAuth as ZAuth
@@ -97,24 +97,9 @@ import Data.UUID.V4
 import Galley.Types.Bot
 import Imports
 import Polysemy
+import Polysemy.Error
 import qualified Wire.API.Team.Feature as ApiFt
 import Wire.API.User.RichInfo
-
--- | Authentication errors.
-data AuthError
-  = AuthInvalidUser
-  | AuthInvalidCredentials
-  | AuthSuspended
-  | AuthEphemeral
-  | AuthPendingInvitation
-
--- | Re-authentication errors.
-data ReAuthError
-  = ReAuthError !AuthError
-  | ReAuthMissingPassword
-  | ReAuthCodeVerificationRequired
-  | ReAuthCodeVerificationNoPendingCode
-  | ReAuthCodeVerificationNoEmail
 
 -- | Preconditions:
 --
@@ -184,38 +169,54 @@ newAccountInviteViaScim uid tid locale name email = do
         ManagedByScim
 
 -- | Mandatory password authentication.
-authenticate :: MonadClient m => UserId -> PlainTextPassword -> ExceptT AuthError m ()
+authenticate ::
+  Members
+    '[ Error AuthError,
+       UserQuery
+     ]
+    r =>
+  UserId ->
+  PlainTextPassword ->
+  Sem r ()
 authenticate u pw =
-  lift (lookupAuth u) >>= \case
-    Nothing -> throwE AuthInvalidUser
-    Just (_, Deleted) -> throwE AuthInvalidUser
-    Just (_, Suspended) -> throwE AuthSuspended
-    Just (_, Ephemeral) -> throwE AuthEphemeral
-    Just (_, PendingInvitation) -> throwE AuthPendingInvitation
-    Just (Nothing, _) -> throwE AuthInvalidCredentials
+  lookupAuth u >>= \case
+    Nothing -> throw AuthInvalidUser
+    Just (_, Deleted) -> throw AuthInvalidUser
+    Just (_, Suspended) -> throw AuthSuspended
+    Just (_, Ephemeral) -> throw AuthEphemeral
+    Just (_, PendingInvitation) -> throw AuthPendingInvitation
+    Just (Nothing, _) -> throw AuthInvalidCredentials
     Just (Just pw', Active) ->
       unless (verifyPassword pw pw') $
-        throwE AuthInvalidCredentials
+        throw AuthInvalidCredentials
 
 -- | Password reauthentication. If the account has a password, reauthentication
 -- is mandatory. If the account has no password and no password is given,
 -- reauthentication is a no-op.
-reauthenticate :: MonadClient m => UserId -> Maybe PlainTextPassword -> ExceptT ReAuthError m ()
+reauthenticate ::
+  Members
+    '[ Error ReAuthError,
+       UserQuery
+     ]
+    r =>
+  UserId ->
+  Maybe PlainTextPassword ->
+  Sem r ()
 reauthenticate u pw =
-  lift (lookupAuth u) >>= \case
-    Nothing -> throwE (ReAuthError AuthInvalidUser)
-    Just (_, Deleted) -> throwE (ReAuthError AuthInvalidUser)
-    Just (_, Suspended) -> throwE (ReAuthError AuthSuspended)
-    Just (_, PendingInvitation) -> throwE (ReAuthError AuthPendingInvitation)
-    Just (Nothing, _) -> for_ pw $ const (throwE $ ReAuthError AuthInvalidCredentials)
+  lookupAuth u >>= \case
+    Nothing -> throw (ReAuthError AuthInvalidUser)
+    Just (_, Deleted) -> throw (ReAuthError AuthInvalidUser)
+    Just (_, Suspended) -> throw (ReAuthError AuthSuspended)
+    Just (_, PendingInvitation) -> throw (ReAuthError AuthPendingInvitation)
+    Just (Nothing, _) -> for_ pw $ const (throw $ ReAuthError AuthInvalidCredentials)
     Just (Just pw', Active) -> maybeReAuth pw'
     Just (Just pw', Ephemeral) -> maybeReAuth pw'
   where
     maybeReAuth pw' = case pw of
-      Nothing -> throwE ReAuthMissingPassword
+      Nothing -> throw ReAuthMissingPassword
       Just p ->
         unless (verifyPassword p pw') $
-          throwE (ReAuthError AuthInvalidCredentials)
+          throw (ReAuthError AuthInvalidCredentials)
 
 insertAccount ::
   MonadClient m =>
@@ -429,8 +430,11 @@ lookupUserTeam u =
   (runIdentity =<<)
     <$> retry x1 (query1 teamSelect (params LocalQuorum (Identity u)))
 
-lookupAuth :: MonadClient m => (MonadClient m) => UserId -> m (Maybe (Maybe Password, AccountStatus))
-lookupAuth u = fmap f <$> retry x1 (query1 authSelect (params LocalQuorum (Identity u)))
+lookupAuth ::
+  Member UserQuery r =>
+  UserId ->
+  Sem r (Maybe (Maybe Password, AccountStatus))
+lookupAuth u = fmap f <$> getAuthentication u
   where
     f (pw, st) = (pw, fromMaybe Active st)
 
@@ -570,9 +574,6 @@ type AccountRow =
     Maybe TeamId,
     Maybe ManagedBy
   )
-
-authSelect :: PrepQuery R (Identity UserId) (Maybe Password, Maybe AccountStatus)
-authSelect = "SELECT password, status FROM user WHERE id = ?"
 
 passwordSelect :: PrepQuery R (Identity UserId) (Identity (Maybe Password))
 passwordSelect = "SELECT password FROM user WHERE id = ?"

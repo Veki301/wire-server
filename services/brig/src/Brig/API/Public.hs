@@ -29,7 +29,7 @@ where
 
 import qualified Brig.API.Client as API
 import qualified Brig.API.Connection as API
-import Brig.API.Error
+import Brig.API.Error hiding (Error)
 import Brig.API.Handler
 import Brig.API.MLS.KeyPackages
 import qualified Brig.API.Properties as API
@@ -92,13 +92,14 @@ import Galley.Types.Teams (HiddenPerm (..), hasPermission)
 import Imports hiding (head)
 import Network.HTTP.Types.Status
 import Network.Wai
-import Network.Wai.Predicate hiding (result, setStatus)
+import Network.Wai.Predicate hiding (Error, result, setStatus)
 import Network.Wai.Routing
 import Network.Wai.Utilities as Utilities
 import Network.Wai.Utilities.Swagger (document, mkSwaggerApi)
 import qualified Network.Wai.Utilities.Swagger as Doc
 import Network.Wai.Utilities.ZAuth (zauthUserId)
 import Polysemy
+import qualified Polysemy.Error as P
 import qualified Polysemy.TinyLog as P
 import Servant hiding (Handler, JSON, addHeader, respond)
 import qualified Servant
@@ -183,7 +184,7 @@ swaggerDocsAPI Nothing = swaggerDocsAPI (Just maxBound)
 
 servantSitemap ::
   forall r.
-  Member UserQuery r =>
+  Members '[P.Error ReAuthError, UserQuery] r =>
   ServerT BrigAPI (Handler r)
 servantSitemap =
   userAPI
@@ -583,7 +584,13 @@ addClient usr con ip new = do
     clientResponse :: Public.Client -> NewClientResponse
     clientResponse client = Servant.addHeader (Public.clientId client) client
 
-deleteClient :: UserId -> ConnId -> ClientId -> Public.RmClient -> (Handler r) ()
+deleteClient ::
+  Members '[P.Error ReAuthError, UserQuery] r =>
+  UserId ->
+  ConnId ->
+  ClientId ->
+  Public.RmClient ->
+  (Handler r) ()
 deleteClient usr con clt body =
   API.rmClient usr con clt (Public.rmPassword body) !>> clientError
 

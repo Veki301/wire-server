@@ -21,7 +21,7 @@ module Brig.User.API.Auth
   )
 where
 
-import Brig.API.Error
+import Brig.API.Error hiding (Error)
 import Brig.API.Handler
 import Brig.API.Types
 import qualified Brig.API.User as User
@@ -48,7 +48,7 @@ import qualified Data.ZAuth.Token as ZAuth
 import Imports
 import Network.HTTP.Types.Status
 import Network.Wai (Response)
-import Network.Wai.Predicate
+import Network.Wai.Predicate hiding (Error)
 import qualified Network.Wai.Predicate as P
 import qualified Network.Wai.Predicate.Request as R
 import Network.Wai.Routing
@@ -59,6 +59,7 @@ import qualified Network.Wai.Utilities.Response as WaiResp
 import Network.Wai.Utilities.Swagger (document)
 import qualified Network.Wai.Utilities.Swagger as Doc
 import Polysemy
+import Polysemy.Error
 import Wire.API.Error
 import qualified Wire.API.Error.Brig as E
 import qualified Wire.API.User as Public
@@ -193,7 +194,9 @@ routesPublic = do
     Doc.body (Doc.ref Public.modelRemoveCookies) Doc.end
     Doc.errorResponse (errorToWai @'E.BadCredentials)
 
-routesInternal :: Routes a (Handler r) ()
+routesInternal ::
+  Members '[Error ReAuthError, UserQuery] r =>
+  Routes a (Handler r) ()
 routesInternal = do
   -- galley can query this endpoint at the right moment in the LegalHold flow
   post "/i/legalhold-login" (continue legalHoldLoginH) $
@@ -233,14 +236,21 @@ getLoginCode phone = do
   code <- lift $ wrapClient $ Auth.lookupLoginCode phone
   maybe (throwStd loginCodeNotFound) pure code
 
-reAuthUserH :: UserId ::: JsonRequest ReAuthUser -> (Handler r) Response
+reAuthUserH ::
+  Members '[Error ReAuthError, UserQuery] r =>
+  UserId ::: JsonRequest ReAuthUser ->
+  (Handler r) Response
 reAuthUserH (uid ::: req) = do
   reAuthUser uid =<< parseJsonBody req
   pure empty
 
-reAuthUser :: UserId -> ReAuthUser -> (Handler r) ()
+reAuthUser ::
+  Members '[Error ReAuthError, UserQuery] r =>
+  UserId ->
+  ReAuthUser ->
+  (Handler r) ()
 reAuthUser uid body = do
-  wrapClientE (User.reauthenticate uid (reAuthPassword body)) !>> reauthError
+  lift (liftSem (User.reauthenticate uid (reAuthPassword body))) !>> reauthError
   case reAuthCodeAction body of
     Just action ->
       wrapHttpClientE (Auth.verifyCode (reAuthCode body) action uid)

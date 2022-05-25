@@ -23,17 +23,20 @@ where
 import Brig.API.Handler (Handler)
 import qualified Brig.API.Internal as Internal
 import qualified Brig.API.Public as Public
+import Brig.API.Types
 import Brig.Sem.PasswordResetStore (PasswordResetStore)
 import Brig.Sem.PasswordResetSupply (PasswordResetSupply)
 import Brig.Sem.UserQuery (UserQuery)
 import qualified Data.Swagger.Build.Api as Doc
 import Network.Wai.Routing (Routes)
 import Polysemy
+import Polysemy.Error
 import qualified Polysemy.TinyLog as P
 
 sitemap ::
   Members
-    '[ P.TinyLog,
+    '[ Error ReAuthError,
+       P.TinyLog,
        PasswordResetStore,
        PasswordResetSupply,
        UserQuery

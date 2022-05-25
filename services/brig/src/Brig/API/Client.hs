@@ -57,6 +57,7 @@ import qualified Brig.Federation.Client as Federation
 import Brig.IO.Intra (guardLegalhold)
 import qualified Brig.IO.Intra as Intra
 import qualified Brig.Options as Opt
+import Brig.Sem.UserQuery (UserQuery)
 import Brig.Types
 import Brig.Types.Intra
 import Brig.Types.Team.LegalHold (LegalHoldClientRequest (..))
@@ -80,7 +81,9 @@ import Data.Misc (PlainTextPassword (..))
 import Data.Qualified
 import qualified Data.Set as Set
 import Imports
-import Network.Wai.Utilities
+import Network.Wai.Utilities hiding (Error)
+import Polysemy
+import Polysemy.Error
 import System.Logger.Class (field, msg, val, (~~))
 import qualified System.Logger.Class as Log
 import UnliftIO.Async (Concurrently (Concurrently, runConcurrently))
@@ -211,7 +214,13 @@ updateClient u c r = do
 
 -- nb. We must ensure that the set of clients known to brig is always
 -- a superset of the clients known to galley.
-rmClient :: UserId -> ConnId -> ClientId -> Maybe PlainTextPassword -> ExceptT ClientError (AppT r) ()
+rmClient ::
+  Members '[Error ReAuthError, UserQuery] r =>
+  UserId ->
+  ConnId ->
+  ClientId ->
+  Maybe PlainTextPassword ->
+  ExceptT ClientError (AppT r) ()
 rmClient u con clt pw =
   maybe (throwE ClientNotFound) fn =<< lift (wrapClient $ Data.lookupClient u clt)
   where
@@ -222,7 +231,7 @@ rmClient u con clt pw =
         -- Temporary clients don't need to re-auth
         TemporaryClientType -> pure ()
         -- All other clients must authenticate
-        _ -> wrapClientE (Data.reauthenticate u pw) !>> ClientDataError . ClientReAuthError
+        _ -> lift (liftSem (Data.reauthenticate u pw)) !>> ClientDataError . ClientReAuthError
       lift $ execDelete u (Just con) client
 
 claimPrekey ::
