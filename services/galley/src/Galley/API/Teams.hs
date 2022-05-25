@@ -1364,8 +1364,8 @@ getTeamSearchVisibilityAvailableInternal tid = do
   defConfig <- do
     featureTeamSearchVisibility <- view (optSettings . setFeatureFlags . flagTeamSearchVisibility) <$> input
     pure . Public.TeamFeatureStatusNoConfig $ case featureTeamSearchVisibility of
-      FeatureTeamSearchVisibilityEnabledByDefault -> Public.TeamFeatureEnabled
-      FeatureTeamSearchVisibilityDisabledByDefault -> Public.TeamFeatureDisabled
+      FeatureTeamSearchVisibilityEnabledByDefault -> Public.FeatureStatusEnabled
+      FeatureTeamSearchVisibilityDisabledByDefault -> Public.FeatureStatusDisabled
 
   fromMaybe defConfig
     <$> TeamFeatures.getFeatureStatusNoConfig @'Public.TeamFeatureSearchVisibility tid
@@ -1392,7 +1392,7 @@ setSearchVisibilityInternal ::
   Sem r ()
 setSearchVisibilityInternal tid (TeamSearchVisibilityView searchVisibility) = do
   status <- getTeamSearchVisibilityAvailableInternal tid
-  unless (Public.tfwoStatus status == Public.TeamFeatureEnabled) $
+  unless (Public.tfwoStatus status == Public.FeatureStatusEnabled) $
     throwS @'TeamSearchVisibilityNotEnabled
   SearchVisibilityData.setSearchVisibility tid searchVisibility
 

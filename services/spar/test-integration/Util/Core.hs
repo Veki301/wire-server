@@ -201,7 +201,7 @@ import qualified Web.Cookie as Web
 import Wire.API.Cookie
 import Wire.API.Routes.Public.Spar
 import Wire.API.Team (Icon (..))
-import Wire.API.Team.Feature (TeamFeatureStatusValue (..))
+import Wire.API.Team.Feature (FeatureStatus (..))
 import qualified Wire.API.Team.Feature as Public
 import qualified Wire.API.Team.Invitation as TeamInvitation
 import qualified Wire.API.Team.Member as Member
@@ -347,7 +347,7 @@ getUserBrig uid = do
 createUserWithTeam :: (HasCallStack, MonadHttp m, MonadIO m, MonadFail m) => BrigReq -> GalleyReq -> m (UserId, TeamId)
 createUserWithTeam brg gly = do
   (uid, tid) <- createUserWithTeamDisableSSO brg gly
-  putSSOEnabledInternal gly tid TeamFeatureEnabled
+  putSSOEnabledInternal gly tid FeatureStatusEnabled
   pure (uid, tid)
 
 createUserWithTeamDisableSSO :: (HasCallStack, MonadHttp m, MonadIO m, MonadFail m) => BrigReq -> GalleyReq -> m (UserId, TeamId)
@@ -380,7 +380,7 @@ getSSOEnabledInternal gly tid = do
     gly
       . paths ["i", "teams", toByteString' tid, "features", "sso"]
 
-putSSOEnabledInternal :: (HasCallStack, MonadHttp m, MonadIO m) => GalleyReq -> TeamId -> TeamFeatureStatusValue -> m ()
+putSSOEnabledInternal :: (HasCallStack, MonadHttp m, MonadIO m) => GalleyReq -> TeamId -> FeatureStatus -> m ()
 putSSOEnabledInternal gly tid enabled = do
   void . put $
     gly

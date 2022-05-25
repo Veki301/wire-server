@@ -295,7 +295,7 @@ getFeatureStatusNoConfig ::
     HasStatusCol a,
     Member TeamFeatureStore r
   ) =>
-  Sem r TeamFeatureStatusValue ->
+  Sem r FeatureStatus ->
   TeamId ->
   Sem r (TeamFeatureStatus 'WithoutLockStatus a)
 getFeatureStatusNoConfig getDefault tid = do
@@ -309,7 +309,7 @@ setFeatureStatusNoConfig ::
     HasStatusCol a,
     Members '[GundeckAccess, TeamFeatureStore, TeamStore, P.TinyLog] r
   ) =>
-  (TeamFeatureStatusValue -> TeamId -> Sem r ()) ->
+  (FeatureStatus -> TeamId -> Sem r ()) ->
   FeatureSetter a r
 setFeatureStatusNoConfig applyState = Tagged $ \tid status -> do
   applyState (tfwoStatus status) tid
@@ -328,18 +328,18 @@ getSSOStatusInternal =
     FeatureScopeUser _ -> TeamFeatureStatusNoConfig <$> getDef
     FeatureScopeServer -> TeamFeatureStatusNoConfig <$> getDef
   where
-    getDef :: Member (Input Opts) r => Sem r TeamFeatureStatusValue
+    getDef :: Member (Input Opts) r => Sem r FeatureStatus
     getDef =
       inputs (view (optSettings . setFeatureFlags . flagSSO)) <&> \case
-        FeatureSSOEnabledByDefault -> TeamFeatureEnabled
-        FeatureSSODisabledByDefault -> TeamFeatureDisabled
+        FeatureSSOEnabledByDefault -> FeatureStatusEnabled
+        FeatureSSODisabledByDefault -> FeatureStatusDisabled
 
 setSSOStatusInternal ::
   Members '[Error TeamFeatureError, GundeckAccess, TeamFeatureStore, TeamStore, P.TinyLog] r =>
   FeatureSetter 'TeamFeatureSSO r
 setSSOStatusInternal = setFeatureStatusNoConfig @'TeamFeatureSSO $ \case
-  TeamFeatureDisabled -> const (throw DisableSsoNotImplemented)
-  TeamFeatureEnabled -> const (pure ())
+  FeatureStatusDisabled -> const (throw DisableSsoNotImplemented)
+  FeatureStatusEnabled -> const (pure ())
 
 getTeamSearchVisibilityAvailableInternal ::
   Members '[Input Opts, TeamFeatureStore] r =>
@@ -352,15 +352,15 @@ getTeamSearchVisibilityAvailableInternal =
   where
     getDef = do
       inputs (view (optSettings . setFeatureFlags . flagTeamSearchVisibility)) <&> \case
-        FeatureTeamSearchVisibilityEnabledByDefault -> TeamFeatureEnabled
-        FeatureTeamSearchVisibilityDisabledByDefault -> TeamFeatureDisabled
+        FeatureTeamSearchVisibilityEnabledByDefault -> FeatureStatusEnabled
+        FeatureTeamSearchVisibilityDisabledByDefault -> FeatureStatusDisabled
 
 setTeamSearchVisibilityAvailableInternal ::
   Members '[GundeckAccess, SearchVisibilityStore, TeamFeatureStore, TeamStore, P.TinyLog] r =>
   FeatureSetter 'TeamFeatureSearchVisibility r
 setTeamSearchVisibilityAvailableInternal = setFeatureStatusNoConfig @'TeamFeatureSearchVisibility $ \case
-  TeamFeatureDisabled -> SearchVisibilityData.resetSearchVisibility
-  TeamFeatureEnabled -> const (pure ())
+  FeatureStatusDisabled -> SearchVisibilityData.resetSearchVisibility
+  FeatureStatusEnabled -> const (pure ())
 
 getValidateSAMLEmailsInternal ::
   forall r.
@@ -393,7 +393,7 @@ getDigitalSignaturesInternal =
     -- FUTUREWORK: we may also want to get a default from the server config file here, like for
     -- sso, and team search visibility.
     -- Use getFeatureStatusWithDefault
-    getDef = pure TeamFeatureDisabled
+    getDef = pure FeatureStatusDisabled
 
 setDigitalSignaturesInternal ::
   Members '[GundeckAccess, TeamFeatureStore, TeamStore, P.TinyLog] r =>
@@ -406,10 +406,10 @@ getLegalholdStatusInternal ::
 getLegalholdStatusInternal = Tagged $ \case
   FeatureScopeTeam tid -> do
     isLegalHoldEnabledForTeam tid <&> \case
-      True -> TeamFeatureStatusNoConfig TeamFeatureEnabled
-      False -> TeamFeatureStatusNoConfig TeamFeatureDisabled
-  FeatureScopeUser _ -> pure $ TeamFeatureStatusNoConfig TeamFeatureDisabled
-  FeatureScopeServer -> pure $ TeamFeatureStatusNoConfig TeamFeatureDisabled
+      True -> TeamFeatureStatusNoConfig FeatureStatusEnabled
+      False -> TeamFeatureStatusNoConfig FeatureStatusDisabled
+  FeatureScopeUser _ -> pure $ TeamFeatureStatusNoConfig FeatureStatusDisabled
+  FeatureScopeServer -> pure $ TeamFeatureStatusNoConfig FeatureStatusDisabled
 
 setLegalholdStatusInternal ::
   forall p r.
@@ -464,8 +464,8 @@ setLegalholdStatusInternal = Tagged $ \tid status@(tfwoStatus -> statusValue) ->
 
   -- we're good to update the status now.
   case statusValue of
-    TeamFeatureDisabled -> removeSettings' @p tid
-    TeamFeatureEnabled -> ensureNotTooLargeToActivateLegalHold tid
+    FeatureStatusDisabled -> removeSettings' @p tid
+    FeatureStatusEnabled -> ensureNotTooLargeToActivateLegalHold tid
   TeamFeatures.setFeatureStatusNoConfig @'TeamFeatureLegalHold tid status
 
 getFileSharingInternal ::
@@ -513,7 +513,7 @@ getFeatureStatusWithDefaultConfig lens' =
     (TeamFeatureStatusNoConfig <$> getDef)
     (getFeatureStatusNoConfig @a getDef)
   where
-    getDef :: Sem r TeamFeatureStatusValue
+    getDef :: Sem r FeatureStatus
     getDef =
       inputs (view (optSettings . setFeatureFlags . lens'))
         <&> tfwoStatus . view unDefaults
@@ -575,8 +575,8 @@ getClassifiedDomainsInternal = Tagged . const $ do
   globalConfig <- inputs (view (optSettings . setFeatureFlags . flagClassifiedDomains))
   let config = globalConfig
   pure $ case tfwcStatus config of
-    TeamFeatureDisabled -> defTeamFeatureStatus @'TeamFeatureClassifiedDomains
-    TeamFeatureEnabled -> config
+    FeatureStatusDisabled -> defTeamFeatureStatus @'TeamFeatureClassifiedDomains
+    FeatureStatusEnabled -> config
 
 getConferenceCallingInternal ::
   Members '[BrigAccess, Input Opts, TeamFeatureStore] r =>
@@ -746,8 +746,8 @@ guardSecondFactorDisabled uid cid action = do
         then TeamFeatureStatusNoConfig . tfwoapsStatus <$> unTagged getSndFactorPasswordChallengeInternal (FeatureScopeTeam tid)
         else getSndFactorPasswordChallengeNoAuth (Just uid)
   case tfwoStatus teamFeature of
-    TeamFeatureDisabled -> action
-    TeamFeatureEnabled -> throwS @'AccessDenied
+    FeatureStatusDisabled -> action
+    FeatureStatusEnabled -> throwS @'AccessDenied
 
 setSndFactorPasswordChallengeInternal ::
   forall r.
@@ -818,7 +818,7 @@ getFeatureStatusMulti lens' (Multi.TeamFeatureNoConfigMultiRequest teams) = do
   let tsImplicit = [Multi.TeamStatus tid defaultStatus Nothing | tid <- teamsDefault]
   pure $ Multi.TeamFeatureNoConfigMultiResponse $ tsExplicit <> tsImplicit
   where
-    getDef :: Sem r TeamFeatureStatusValue
+    getDef :: Sem r FeatureStatus
     getDef =
       inputs (view (optSettings . setFeatureFlags . lens'))
         <&> tfwoStatus . view unDefaults

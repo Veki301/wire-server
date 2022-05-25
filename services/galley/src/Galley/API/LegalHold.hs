@@ -106,8 +106,8 @@ isLegalHoldEnabledForTeam tid = do
       statusValue <-
         Public.tfwoStatus <$$> TeamFeatures.getFeatureStatusNoConfig @'Public.TeamFeatureLegalHold tid
       return $ case statusValue of
-        Just Public.TeamFeatureEnabled -> True
-        Just Public.TeamFeatureDisabled -> False
+        Just Public.FeatureStatusEnabled -> True
+        Just Public.FeatureStatusDisabled -> False
         Nothing -> False
     FeatureLegalHoldWhitelistTeamsAndImplicitConsent ->
       LegalHoldData.isTeamLegalholdWhitelisted tid

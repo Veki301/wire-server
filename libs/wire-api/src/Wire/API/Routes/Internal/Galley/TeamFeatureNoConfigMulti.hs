@@ -57,7 +57,7 @@ instance ToSchema (TeamFeatureNoConfigMultiResponse a) where
 
 data TeamStatus (a :: FeatureTag) = TeamStatus
   { team :: TeamId,
-    status :: Public.TeamFeatureStatusValue,
+    status :: Public.FeatureStatus,
     writeTime :: Maybe Int64
   }
   deriving (Show, Eq)
@@ -73,7 +73,7 @@ instance ToSchema (TeamStatus a) where
 
 data TeamStatusUpdate (a :: FeatureTag) = TeamStatusUpdate
   { tsuTeam :: TeamId,
-    tsuStatus :: Public.TeamFeatureStatusValue,
+    tsuStatus :: Public.FeatureStatus,
     tsuWriteTime :: Int64
   }
   deriving (Show, Eq)

@@ -387,7 +387,7 @@ routes = do
       description "Team ID"
     Doc.parameter Doc.Path "feature" Doc.typeTeamFeatureNameNoConfig $
       description "Feature name"
-    Doc.parameter Doc.Query "status" Public.typeTeamFeatureStatusValue $ do
+    Doc.parameter Doc.Query "status" Public.typeFeatureStatus $ do
       Doc.description "team feature status (enabled or disabled)"
     Doc.response 200 "Team feature flag status" Doc.end
 
@@ -661,7 +661,7 @@ getTeamFeatureFlagNoConfigH (tid ::: featureName) =
   json <$> Intra.getTeamFeatureFlagNoConfig tid featureName
 
 setTeamFeatureNoConfigFlagH ::
-  TeamId ::: Public.FeatureTag ::: Public.TeamFeatureStatusValue ->
+  TeamId ::: Public.FeatureTag ::: Public.FeatureStatus ->
   Handler Response
 setTeamFeatureNoConfigFlagH (tid ::: featureName ::: statusValue) =
   json <$> Intra.setTeamFeatureFlagNoConfig tid featureName statusValue

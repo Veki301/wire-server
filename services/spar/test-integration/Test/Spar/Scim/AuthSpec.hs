@@ -111,7 +111,7 @@ testCreateTokenWithVerificationCode = do
   env <- ask
   (owner, teamId, _) <- registerTestIdP
   unlockFeature (env ^. teGalley) teamId
-  setSndFactorPasswordChallengeStatus (env ^. teGalley) teamId Public.TeamFeatureEnabled
+  setSndFactorPasswordChallengeStatus (env ^. teGalley) teamId Public.FeatureStatusEnabled
   user <- getUserBrig owner
   let email = fromMaybe undefined (Brig.userEmail =<< user)
 
@@ -139,7 +139,7 @@ unlockFeature :: GalleyReq -> TeamId -> TestSpar ()
 unlockFeature galley tid =
   call $ put (galley . paths ["i", "teams", toByteString' tid, "features", toByteString' Public.TeamFeatureSndFactorPasswordChallenge, toByteString' Public.Unlocked]) !!! const 200 === statusCode
 
-setSndFactorPasswordChallengeStatus :: GalleyReq -> TeamId -> Public.TeamFeatureStatusValue -> TestSpar ()
+setSndFactorPasswordChallengeStatus :: GalleyReq -> TeamId -> Public.FeatureStatus -> TestSpar ()
 setSndFactorPasswordChallengeStatus galley tid status = do
   let js = RequestBodyLBS $ encode $ Public.TeamFeatureStatusNoConfig status
   call $

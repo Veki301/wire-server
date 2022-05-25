@@ -40,7 +40,7 @@ getFeatureStatusNoConfigAndLockStatus _ tid = do
   mTuple <- retry x1 q
   pure (mTuple >>= (fmap TeamFeatureStatusNoConfig . fst), mTuple >>= snd)
   where
-    select :: PrepQuery R (Identity TeamId) (Maybe TeamFeatureStatusValue, Maybe LockStatusValue)
+    select :: PrepQuery R (Identity TeamId) (Maybe FeatureStatus , Maybe LockStatusValue)
     select =
       fromString $
         "select "
@@ -63,7 +63,7 @@ getFeatureStatusNoConfig _ tid = do
   mStatusValue <- (>>= runIdentity) <$> retry x1 q
   pure $ TeamFeatureStatusNoConfig <$> mStatusValue
   where
-    select :: PrepQuery R (Identity TeamId) (Identity (Maybe TeamFeatureStatusValue))
+    select :: PrepQuery R (Identity TeamId) (Identity (Maybe FeatureStatus ))
     select = fromString $ "select " <> statusCol @a <> " from team_features where team_id = ?"
 
 getFeatureStatusNoConfigMulti ::
@@ -74,7 +74,7 @@ getFeatureStatusNoConfigMulti ::
   ) =>
   Proxy a ->
   [TeamId] ->
-  m [(TeamId, TeamFeatureStatusValue, Int64)]
+  m [(TeamId, FeatureStatus , Int64)]
 getFeatureStatusNoConfigMulti _ tids = do
   mapMaybe
     ( \(t, mStatus, mTime) -> do
@@ -84,7 +84,7 @@ getFeatureStatusNoConfigMulti _ tids = do
     )
     <$> retry x1 (query select (params LocalQuorum (Identity tids)))
   where
-    select :: PrepQuery R (Identity [TeamId]) (TeamId, Maybe TeamFeatureStatusValue, Maybe Int64)
+    select :: PrepQuery R (Identity [TeamId]) (TeamId, Maybe FeatureStatus , Maybe Int64)
     select = fromString $ "select team_id, " <> statusCol @a <> ", writetime(" <> statusCol @a <> ") from team_features where team_id in ?"
 
 setFeatureStatusNoConfig ::
@@ -102,7 +102,7 @@ setFeatureStatusNoConfig _ tid status = do
   retry x5 $ write insert (params LocalQuorum (tid, flag))
   pure status
   where
-    insert :: PrepQuery W (TeamId, TeamFeatureStatusValue) ()
+    insert :: PrepQuery W (TeamId, FeatureStatus) ()
     insert = fromString $ "insert into team_features (team_id, " <> statusCol @a <> ") values (?, ?)"
 
 getApplockFeatureStatus ::
@@ -117,7 +117,7 @@ getApplockFeatureStatus tid = do
     mTuple >>= \(mbStatusValue, mbEnforce, mbTimeout) ->
       TeamFeatureStatusWithConfig <$> mbStatusValue <*> (TeamFeatureAppLockConfig <$> mbEnforce <*> mbTimeout)
   where
-    select :: PrepQuery R (Identity TeamId) (Maybe TeamFeatureStatusValue, Maybe EnforceAppLock, Maybe Int32)
+    select :: PrepQuery R (Identity TeamId) (Maybe FeatureStatus, Maybe EnforceAppLock, Maybe Int32)
     select =
       fromString $
         "select " <> statusCol @'TeamFeatureAppLock <> ", app_lock_enforce, app_lock_inactivity_timeout_secs "
@@ -135,7 +135,7 @@ setApplockFeatureStatus tid status = do
   retry x5 $ write insert (params LocalQuorum (tid, statusValue, enforce, timeout))
   pure status
   where
-    insert :: PrepQuery W (TeamId, TeamFeatureStatusValue, EnforceAppLock, Int32) ()
+    insert :: PrepQuery W (TeamId, FeatureStatus, EnforceAppLock, Int32) ()
     insert =
       fromString $
         "insert into team_features (team_id, "
@@ -156,7 +156,7 @@ getSelfDeletingMessagesStatus tid = do
       mTuple >>= \(_, _, mbLockStatus) -> mbLockStatus
     )
   where
-    select :: PrepQuery R (Identity TeamId) (Maybe TeamFeatureStatusValue, Maybe Int32, Maybe LockStatusValue)
+    select :: PrepQuery R (Identity TeamId) (Maybe FeatureStatus, Maybe Int32, Maybe LockStatusValue)
     select =
       fromString $
         "select "
@@ -176,7 +176,7 @@ setSelfDeletingMessagesStatus tid status = do
   retry x5 $ write insert (params LocalQuorum (tid, statusValue, timeout))
   pure status
   where
-    insert :: PrepQuery W (TeamId, TeamFeatureStatusValue, Int32) ()
+    insert :: PrepQuery W (TeamId, FeatureStatus, Int32) ()
     insert =
       fromString $
         "insert into team_features (team_id, "

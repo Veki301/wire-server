@@ -565,8 +565,8 @@ ensureGuestLinksEnabled ::
   Sem r ()
 ensureGuestLinksEnabled mbTid =
   getConversationGuestLinksStatusValue mbTid >>= \case
-    TeamFeatureEnabled -> pure ()
-    TeamFeatureDisabled -> throwS @'GuestLinksDisabled
+    FeatureStatusEnabled -> pure ()
+    FeatureStatusDisabled -> throwS @'GuestLinksDisabled
 
 getConversationGuestLinksStatus ::
   forall r.
@@ -590,7 +590,7 @@ getConversationGuestLinksStatusValue ::
     Member (Input Opts) r
   ) =>
   Maybe TeamId ->
-  Sem r TeamFeatureStatusValue
+  Sem rFeatureStatus  
 getConversationGuestLinksStatusValue mbTid = do
   defaultStatus <- tfwoapsStatus <$> (input <&> view (optSettings . setFeatureFlags . flagConversationGuestLinks . unDefaults))
   maybe defaultStatus tfwoStatus . join <$> TeamFeatures.getFeatureStatusNoConfig @'TeamFeatureGuestLinks `traverse` mbTid

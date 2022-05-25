@@ -23,6 +23,7 @@
 module Wire.API.Team.Feature
   ( FeatureConfig (..),
     FeatureTag (..),
+    FeatureStatus (..),
     WithStatus (..),
     WithStatusNoLock (..),
   )

@@ -499,7 +499,7 @@ generateVerificationCode brig req = do
   let js = RequestBodyLBS $ encode req
   post (brig . paths ["verification-code", "send"] . contentJson . body js) !!! const 200 === statusCode
 
-setTeamSndFactorPasswordChallenge :: (MonadCatch m, MonadIO m, MonadHttp m, HasCallStack) => Galley -> TeamId -> Public.TeamFeatureStatusValue -> m ()
+setTeamSndFactorPasswordChallenge :: (MonadCatch m, MonadIO m, MonadHttp m, HasCallStack) => Galley -> TeamId -> Public.FeatureStatus -> m ()
 setTeamSndFactorPasswordChallenge galley tid status = do
   let js = RequestBodyLBS $ encode $ Public.TeamFeatureStatusNoConfig status
   put (galley . paths ["i", "teams", toByteString' tid, "features", toByteString' Public.TeamFeatureSndFactorPasswordChallenge] . contentJson . body js) !!! const 200 === statusCode

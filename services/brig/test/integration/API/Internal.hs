@@ -213,8 +213,8 @@ testFeatureConferenceCallingByAccount (Opt.optSettings -> settings) mgr db brig 
           . (^?! Aeson.key "conferenceCalling")
           . responseJsonUnsafe @Aeson.Value
 
-  check $ ApiFt.TeamFeatureStatusNoConfig ApiFt.TeamFeatureEnabled
-  check $ ApiFt.TeamFeatureStatusNoConfig ApiFt.TeamFeatureDisabled
+  check $ ApiFt.TeamFeatureStatusNoConfig ApiFt.FeatureStatusEnabled
+  check $ ApiFt.TeamFeatureStatusNoConfig ApiFt.FeatureStatusDisabled
   check'
 
 keyPackageCreate :: HasCallStack => Brig -> Http KeyPackageRef

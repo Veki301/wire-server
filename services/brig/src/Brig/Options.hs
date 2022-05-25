@@ -667,8 +667,8 @@ getAfcConferenceCallingDefNull = Lens.to (afcConferenceCallingDefNull . fromMayb
 defAccountFeatureConfigs :: AccountFeatureConfigs
 defAccountFeatureConfigs =
   AccountFeatureConfigs
-    { afcConferenceCallingDefNew = ApiFT.TeamFeatureStatusNoConfig ApiFT.TeamFeatureEnabled,
-      afcConferenceCallingDefNull = ApiFT.TeamFeatureStatusNoConfig ApiFT.TeamFeatureEnabled
+    { afcConferenceCallingDefNew = ApiFT.TeamFeatureStatusNoConfig ApiFT.FeatureStatusEnabled,
+      afcConferenceCallingDefNull = ApiFT.TeamFeatureStatusNoConfig ApiFT.FeatureStatusEnabled
     }
 
 -- | Customer extensions naturally are covered by the AGPL like everything else, but use them

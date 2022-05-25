@@ -47,7 +47,7 @@ import Test.Tasty.HUnit
 import Util
 import Web.Cookie (parseSetCookie, setCookieName)
 import Wire.API.Team (Icon (..))
-import Wire.API.Team.Feature (TeamFeatureStatusValue (..))
+import Wire.API.Team.Feature (FeatureStatus (..))
 import qualified Wire.API.Team.Feature as Public
 import qualified Wire.API.Team.Member as Member
 import qualified Wire.API.User as Public
@@ -268,7 +268,7 @@ getTeams u galley =
 newTeam :: Team.BindingNewTeam
 newTeam = Team.BindingNewTeam $ Team.newNewTeam (unsafeRange "teamName") DefaultIcon
 
-putLegalHoldEnabled :: HasCallStack => TeamId -> TeamFeatureStatusValue -> Galley -> Http ()
+putLegalHoldEnabled :: HasCallStack => TeamId -> FeatureStatus -> Galley -> Http ()
 putLegalHoldEnabled tid enabled g = do
   void . put $
     g
@@ -435,7 +435,7 @@ stdInvitationRequest' :: Maybe Locale -> Maybe Team.Role -> Email -> InvitationR
 stdInvitationRequest' loc role email =
   InvitationRequest loc role Nothing email Nothing
 
-setTeamTeamSearchVisibilityAvailable :: (HasCallStack, MonadHttp m, MonadIO m, MonadCatch m) => Galley -> TeamId -> TeamFeatureStatusValue -> m ()
+setTeamTeamSearchVisibilityAvailable :: (HasCallStack, MonadHttp m, MonadIO m, MonadCatch m) => Galley -> TeamId -> FeatureStatus -> m ()
 setTeamTeamSearchVisibilityAvailable galley tid status =
   put
     ( galley
@@ -457,7 +457,7 @@ setTeamSearchVisibility galley tid typ =
     !!! do
       const 204 === statusCode
 
-setTeamSearchVisibilityInboundAvailable :: (HasCallStack, MonadHttp m, MonadIO m, MonadCatch m) => Galley -> TeamId -> TeamFeatureStatusValue -> m ()
+setTeamSearchVisibilityInboundAvailable :: (HasCallStack, MonadHttp m, MonadIO m, MonadCatch m) => Galley -> TeamId -> FeatureStatus -> m ()
 setTeamSearchVisibilityInboundAvailable galley tid status =
   put
     ( galley

@@ -77,7 +77,7 @@ import Imports
 import Network.Wai.Utilities.Error ((!>>))
 import System.Logger (field, msg, val, (~~))
 import qualified System.Logger.Class as Log
-import Wire.API.Team.Feature (TeamFeatureStatusNoConfig (..), TeamFeatureStatusValue (..))
+import Wire.API.Team.Feature (TeamFeatureStatusNoConfig (..), FeatureStatus (..))
 import qualified Wire.API.Team.Feature as Public
 import Wire.API.User (VerificationAction (..))
 
@@ -196,7 +196,7 @@ verifyCode mbCode action uid = do
   (mbEmail, mbTeamId) <- getEmailAndTeamId uid
   featureEnabled <- lift $ do
     mbFeatureEnabled <- Intra.getVerificationCodeEnabled `traverse` mbTeamId
-    pure $ fromMaybe (Public.tfwoapsStatus (Public.defTeamFeatureStatus @'Public.TeamFeatureSndFactorPasswordChallenge) == Public.TeamFeatureEnabled) mbFeatureEnabled
+    pure $ fromMaybe (Public.tfwoapsStatus (Public.defTeamFeatureStatus @'Public.TeamFeatureSndFactorPasswordChallenge) == Public.FeatureStatusEnabled) mbFeatureEnabled
   when featureEnabled $ do
     case (mbCode, mbEmail) of
       (Just code, Just email) -> do
@@ -516,5 +516,5 @@ assertLegalHoldEnabled ::
 assertLegalHoldEnabled tid = do
   stat <- lift $ Intra.getTeamLegalHoldStatus tid
   case tfwoStatus stat of
-    TeamFeatureDisabled -> throwE LegalHoldLoginLegalHoldNotEnabled
-    TeamFeatureEnabled -> pure ()
+    FeatureStatusDisabled -> throwE LegalHoldLoginLegalHoldNotEnabled
+    FeatureStatusEnabled -> pure ()

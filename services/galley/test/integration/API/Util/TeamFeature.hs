@@ -45,7 +45,7 @@ putTeamSearchVisibilityAvailableInternal ::
   HasCallStack =>
   (Request -> Request) ->
   TeamId ->
-  Public.TeamFeatureStatusValue ->
+  Public.FeatureStatus ->
   (MonadIO m, MonadHttp m) => m ()
 putTeamSearchVisibilityAvailableInternal g tid statusValue =
   void $
@@ -60,7 +60,7 @@ putLegalHoldEnabledInternal' ::
   HasCallStack =>
   (Request -> Request) ->
   TeamId ->
-  Public.TeamFeatureStatusValue ->
+  Public.FeatureStatus ->
   TestM ()
 putLegalHoldEnabledInternal' g tid statusValue =
   void $ putTeamFeatureFlagInternal @'Public.TeamFeatureLegalHold g tid (Public.TeamFeatureStatusNoConfig statusValue)

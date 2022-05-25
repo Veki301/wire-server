@@ -550,7 +550,7 @@ getTeamFeatureFlagNoConfig tid featureName = do
 setTeamFeatureFlagNoConfig ::
   TeamId ->
   Public.FeatureTag ->
-  Public.TeamFeatureStatusValue ->
+  Public.FeatureStatus ->
   Handler ()
 setTeamFeatureFlagNoConfig tid featureName statusValue = do
   info $ msg "Setting team feature status for feature without config"

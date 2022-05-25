@@ -1385,8 +1385,8 @@ getVerificationCodeEnabled tid = do
   response <- galleyRequest GET req
   status <- tfwoStatus <$> decodeBody "galley" response
   case status of
-    TeamFeatureEnabled -> pure True
-    TeamFeatureDisabled -> pure False
+    FeatureStatusEnabled -> pure True
+    FeatureStatusDisabled -> pure False
   where
     req =
       paths ["i", "teams", toByteString' tid, "features", toByteString' TeamFeatureSndFactorPasswordChallenge]

@@ -36,7 +36,7 @@ import Wire.API.Team.Feature
     FeatureTag (..),
     TeamFeatureStatus,
     TeamFeatureStatusNoConfig (..),
-    TeamFeatureStatusValue (..),
+    FeatureStatus (..),
   )
 
 ----------------------------------------------------------------------
@@ -86,7 +86,7 @@ assertSSOEnabled tid = do
   unless (statusCode resp == 200) $
     rethrow "galley" resp
   TeamFeatureStatusNoConfig status <- parseResponse "galley" resp
-  unless (status == TeamFeatureEnabled) $
+  unless (status == FeatureStatusEnabled) $
     throwSpar SparSSODisabled
 
 isEmailValidationEnabledTeam :: (HasCallStack, MonadSparToGalley m) => TeamId -> m Bool
@@ -95,6 +95,6 @@ isEmailValidationEnabledTeam tid = do
   pure
     ( (statusCode resp == 200)
         && ( responseJsonMaybe @(TeamFeatureStatus 'WithoutLockStatus 'TeamFeatureValidateSAMLEmails) resp
-               == Just (TeamFeatureStatusNoConfig TeamFeatureEnabled)
+               == Just (TeamFeatureStatusNoConfig FeatureStatusEnabled)
            )
     )

@@ -317,7 +317,7 @@ updateFeatureConferenceCalling uid mbStatus = do
   retry x5 $ write update (params LocalQuorum (flag, uid))
   pure mbStatus
   where
-    update :: PrepQuery W (Maybe ApiFt.TeamFeatureStatusValue, UserId) ()
+    update :: PrepQuery W (Maybe ApiFt.FeatureStatus, UserId) ()
     update = fromString "update user set feature_conference_calling = ? where id = ?"
 
 deleteEmail :: MonadClient m => UserId -> m ()
@@ -489,7 +489,7 @@ lookupFeatureConferenceCalling uid = do
   mStatusValue <- (>>= runIdentity) <$> retry x1 q
   pure $ ApiFt.TeamFeatureStatusNoConfig <$> mStatusValue
   where
-    select :: PrepQuery R (Identity UserId) (Identity (Maybe ApiFt.TeamFeatureStatusValue))
+    select :: PrepQuery R (Identity UserId) (Identity (Maybe ApiFt.FeatureStatus))
     select = fromString "select feature_conference_calling from user where id = ?"
 
 -------------------------------------------------------------------------------

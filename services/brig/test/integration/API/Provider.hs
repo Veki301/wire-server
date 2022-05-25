@@ -1403,7 +1403,7 @@ enabled2ndFaForTeamInternal galley tid = do
     ( galley
         . paths ["i", "teams", toByteString' tid, "features", toByteString' Public.TeamFeatureSndFactorPasswordChallenge]
         . contentJson
-        . Bilge.json (Public.TeamFeatureStatusNoConfig Public.TeamFeatureEnabled)
+        . Bilge.json (Public.TeamFeatureStatusNoConfig Public.FeatureStatusEnabled)
     )
     !!! const 200 === statusCode
 
