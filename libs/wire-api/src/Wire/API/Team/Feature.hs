@@ -21,8 +21,7 @@
 -- with this program. If not, see <https://www.gnu.org/licenses/>.
 
 module Wire.API.Team.Feature
-  ( FeatureConfig (..),
-    FeatureTag (..),
+  ( FeatureTag (..),
     FeatureStatus (..),
     WithStatus (..),
     WithStatusNoLock (..),
@@ -268,68 +267,68 @@ class IsFeatureConfig cfg where
   type FeatureSymbol cfg :: Symbol
   defFeatureStatus :: WithStatus cfg
 
-instance IsFeatureConfig (FeatureConfig 'TeamFeatureGuestLinks) where
-  type FeatureSymbol (FeatureConfig 'TeamFeatureGuestLinks) = "conversationGuestLinks"
+instance IsFeatureConfig GuestLinksConfig where
+  type FeatureSymbol GuestLinksConfig = "conversationGuestLinks"
   defFeatureStatus = WithStatus FeatureStatusEnabled LockStatusUnlocked GuestLinksConfig
 
-instance IsFeatureConfig (FeatureConfig 'TeamFeatureValidateSAMLEmails) where
-  type FeatureSymbol (FeatureConfig 'TeamFeatureValidateSAMLEmails) = "validateSAMLemails"
+instance IsFeatureConfig ValidateSAMLEmailsConfig where
+  type FeatureSymbol ValidateSAMLEmailsConfig = "validateSAMLemails"
   defFeatureStatus = WithStatus FeatureStatusEnabled LockStatusUnlocked ValidateSAMLEmailsConfig
 
-instance IsFeatureConfig (FeatureConfig 'TeamFeatureSndFactorPasswordChallenge) where
-  type FeatureSymbol (FeatureConfig 'TeamFeatureSndFactorPasswordChallenge) = "sndFactorPasswordChallenge"
+instance IsFeatureConfig SndFactorPasswordChallengeConfig where
+  type FeatureSymbol SndFactorPasswordChallengeConfig = "sndFactorPasswordChallenge"
   defFeatureStatus = WithStatus FeatureStatusDisabled LockStatusLocked SndFactorPasswordChallengeConfig
 
-instance IsFeatureConfig (FeatureConfig 'TeamFeatureSearchVisibilityInbound) where
-  type FeatureSymbol (FeatureConfig 'TeamFeatureSearchVisibilityInbound) = "searchVisibilityInbound"
+instance IsFeatureConfig SearchVisibilityInboundConfig where
+  type FeatureSymbol SearchVisibilityInboundConfig = "searchVisibilityInbound"
   defFeatureStatus = WithStatus FeatureStatusDisabled LockStatusUnlocked SearchVisibilityInboundConfig
 
-instance IsFeatureConfig (FeatureConfig 'TeamFeatureFileSharing) where
-  type FeatureSymbol (FeatureConfig 'TeamFeatureFileSharing) = "fileSharing"
+instance IsFeatureConfig FileSharingConfig where
+  type FeatureSymbol FileSharingConfig = "fileSharing"
   defFeatureStatus = WithStatus FeatureStatusEnabled LockStatusUnlocked FileSharingConfig
 
-instance IsFeatureConfig (FeatureConfig 'TeamFeatureSelfDeletingMessages) where
-  type FeatureSymbol (FeatureConfig 'TeamFeatureSelfDeletingMessages) = "selfDeletingMessages"
+instance IsFeatureConfig SelfDeletingMessagesConfig where
+  type FeatureSymbol SelfDeletingMessagesConfig = "selfDeletingMessages"
   defFeatureStatus =
     WithStatus
       FeatureStatusEnabled
       LockStatusUnlocked
       (SelfDeletingMessagesConfig 0)
 
-instance IsFeatureConfig (FeatureConfig 'TeamFeatureClassifiedDomains) where
-  type FeatureSymbol (FeatureConfig 'TeamFeatureClassifiedDomains) = "classifiedDomains"
+instance IsFeatureConfig ClassifiedDomainsConfig where
+  type FeatureSymbol ClassifiedDomainsConfig = "classifiedDomains"
   defFeatureStatus =
     WithStatus
       FeatureStatusDisabled
       LockStatusUnlocked
       (ClassifiedDomainsConfig [])
 
-instance IsFeatureConfig (FeatureConfig 'TeamFeatureAppLock) where
-  type FeatureSymbol (FeatureConfig 'TeamFeatureAppLock) = "appLock"
+instance IsFeatureConfig AppLockConfig where
+  type FeatureSymbol AppLockConfig = "appLock"
   defFeatureStatus =
     WithStatus
       FeatureStatusEnabled
       LockStatusUnlocked
       (AppLockConfig (EnforceAppLock False) 60)
 
-instance IsFeatureConfig (FeatureConfig 'TeamFeatureConferenceCalling) where
-  type FeatureSymbol (FeatureConfig 'TeamFeatureConferenceCalling) = "conferenceCalling"
+instance IsFeatureConfig ConferenceCallingConfig where
+  type FeatureSymbol ConferenceCallingConfig = "conferenceCalling"
   defFeatureStatus = WithStatus FeatureStatusEnabled LockStatusUnlocked ConferenceCallingConfig
 
-instance IsFeatureConfig (FeatureConfig 'TeamFeatureLegalhold) where
-  type FeatureSymbol (FeatureConfig 'TeamFeatureLegalhold) = "legalhold"
-  defFeatureStatus = WithStatus FeatureStatusDisabled LockStatusUnlocked LegalHoldConfig
+instance IsFeatureConfig LegalholdConfig where
+  type FeatureSymbol LegalholdConfig = "legalhold"
+  defFeatureStatus = WithStatus FeatureStatusDisabled LockStatusUnlocked LegalholdConfig
 
-instance IsFeatureConfig (FeatureConfig 'TeamFeatureSSO) where
-  type FeatureSymbol (FeatureConfig 'TeamFeatureSSO) = "sso"
+instance IsFeatureConfig SSOConfig where
+  type FeatureSymbol SSOConfig = "sso"
   defFeatureStatus = WithStatus FeatureStatusDisabled LockStatusUnlocked SSOConfig
 
-instance IsFeatureConfig (FeatureConfig 'TeamFeatureSearchVisibility) where
-  type FeatureSymbol (FeatureConfig 'TeamFeatureSearchVisibility) = "searchVisibility"
+instance IsFeatureConfig SearchVisibilityConfig where
+  type FeatureSymbol SearchVisibilityConfig = "searchVisibility"
   defFeatureStatus = WithStatus FeatureStatusDisabled LockStatusUnlocked SearchVisibilityConfig
 
-instance IsFeatureConfig (FeatureConfig 'TeamFeatureDigitalSignatures) where
-  type FeatureSymbol (FeatureConfig 'TeamFeatureDigitalSignatures) = "digitalSignatures"
+instance IsFeatureConfig DigitalSignaturesConfig where
+  type FeatureSymbol DigitalSignaturesConfig = "digitalSignatures"
   defFeatureStatus = WithStatus FeatureStatusDisabled LockStatusUnlocked DigitalSignaturesConfig
 
 ----------------------------------------------------------------------
@@ -377,18 +376,18 @@ data IncludeLockStatus = WithLockStatus | WithoutLockStatus
 -- modelForTeamFeature FeatureSearchVisibilityInbound = modelTeamFeatureStatusNoConfig
 
 data AllFeatureConfigs = AllFeatureConfigs
-  { afcLegalholdStatus :: WithStatus (FeatureConfig 'TeamFeatureLegalhold),
-    afcSSOStatus :: WithStatus (FeatureConfig 'TeamFeatureSSO),
-    afcTeamSearchVisibilityAvailable :: WithStatus (FeatureConfig 'TeamFeatureSearchVisibility),
-    afcValidateSAMLEmails :: WithStatus (FeatureConfig 'TeamFeatureValidateSAMLEmails),
-    afcDigitalSignatures :: WithStatus (FeatureConfig 'TeamFeatureDigitalSignatures),
-    afcAppLock :: WithStatus (FeatureConfig 'TeamFeatureAppLock),
-    afcFileSharing :: WithStatus (FeatureConfig 'TeamFeatureFileSharing),
-    afcClassifiedDomains :: WithStatus (FeatureConfig 'TeamFeatureClassifiedDomains),
-    afcConferenceCalling :: WithStatus (FeatureConfig 'TeamFeatureConferenceCalling),
-    afcSelfDeletingMessages :: WithStatus (FeatureConfig 'TeamFeatureSelfDeletingMessages),
-    afcGuestLink :: WithStatus (FeatureConfig 'TeamFeatureGuestLinks),
-    afcSndFactorPasswordChallenge :: WithStatus (FeatureConfig 'TeamFeatureSndFactorPasswordChallenge)
+  { afcLegalholdStatus :: WithStatus LegalholdConfig,
+    afcSSOStatus :: WithStatus SSOConfig,
+    afcTeamSearchVisibilityAvailable :: WithStatus SearchVisibilityConfig,
+    afcValidateSAMLEmails :: WithStatus ValidateSAMLEmailsConfig,
+    afcDigitalSignatures :: WithStatus DigitalSignaturesConfig,
+    afcAppLock :: WithStatus AppLockConfig,
+    afcFileSharing :: WithStatus FileSharingConfig,
+    afcClassifiedDomains :: WithStatus ClassifiedDomainsConfig,
+    afcConferenceCalling :: WithStatus ConferenceCallingConfig,
+    afcSelfDeletingMessages :: WithStatus SelfDeletingMessagesConfig,
+    afcGuestLink :: WithStatus GuestLinksConfig,
+    afcSndFactorPasswordChallenge :: WithStatus SndFactorPasswordChallengeConfig
   }
 
 -- TODO: reenable these
@@ -529,111 +528,107 @@ instance ToSchema cfg => ToSchema (WithStatusNoLock cfg) where
       name = fromMaybe "" (getName (schemaDoc inner)) <> ".WithStatusNoLock"
 
 --------------------------------------------------------------------------------
-
-data family FeatureConfig (tag :: FeatureTag)
-
---------------------------------------------------------------------------------
 -- Legalhold feature
 
-data instance FeatureConfig 'TeamFeatureLegalhold = LegalHoldConfig
+data LegalholdConfig = LegalholdConfig
   deriving stock (Eq, Show, Generic)
-  deriving (Arbitrary) via (GenericUniform (FeatureConfig 'TeamFeatureLegalhold))
+  deriving (Arbitrary) via (GenericUniform LegalholdConfig)
 
-instance ToSchema (FeatureConfig 'TeamFeatureLegalhold) where
-  schema = object "LegalHoldConfig" $ pure LegalHoldConfig
+instance ToSchema LegalholdConfig where
+  schema = object "LegalholdConfig" $ pure LegalholdConfig
 
 --------------------------------------------------------------------------------
 -- SSO feature
 
-data instance FeatureConfig 'TeamFeatureSSO = SSOConfig
+data SSOConfig = SSOConfig
   deriving stock (Eq, Show, Generic)
-  deriving (Arbitrary) via (GenericUniform (FeatureConfig 'TeamFeatureSSO))
+  deriving (Arbitrary) via (GenericUniform SSOConfig)
 
-instance ToSchema (FeatureConfig 'TeamFeatureSSO) where
+instance ToSchema SSOConfig where
   schema = object "SSOConfig" $ pure SSOConfig
 
 --------------------------------------------------------------------------------
 -- SearchVisibility feature
 
-data instance FeatureConfig 'TeamFeatureSearchVisibility = SearchVisibilityConfig
+data SearchVisibilityConfig = SearchVisibilityConfig
   deriving stock (Eq, Show, Generic)
-  deriving (Arbitrary) via (GenericUniform (FeatureConfig 'TeamFeatureSearchVisibility))
+  deriving (Arbitrary) via (GenericUniform SearchVisibilityConfig)
 
-instance ToSchema (FeatureConfig 'TeamFeatureSearchVisibility) where
+instance ToSchema SearchVisibilityConfig where
   schema = object "SearchVisibilityConfig" $ pure SearchVisibilityConfig
 
 --------------------------------------------------------------------------------
 -- ValidateSAMLEmails feature
 
-data instance FeatureConfig 'TeamFeatureValidateSAMLEmails = ValidateSAMLEmailsConfig
+data ValidateSAMLEmailsConfig = ValidateSAMLEmailsConfig
   deriving stock (Eq, Show, Generic)
-  deriving (Arbitrary) via (GenericUniform (FeatureConfig 'TeamFeatureValidateSAMLEmails))
+  deriving (Arbitrary) via (GenericUniform ValidateSAMLEmailsConfig)
 
-instance ToSchema (FeatureConfig 'TeamFeatureValidateSAMLEmails) where
+instance ToSchema ValidateSAMLEmailsConfig where
   schema = object "ValidateSAMLEmailsConfig" $ pure ValidateSAMLEmailsConfig
 
 --------------------------------------------------------------------------------
 -- DigitalSignatures feature
 
-data instance FeatureConfig 'TeamFeatureDigitalSignatures = DigitalSignaturesConfig
+data DigitalSignaturesConfig = DigitalSignaturesConfig
   deriving stock (Eq, Show, Generic)
-  deriving (Arbitrary) via (GenericUniform (FeatureConfig 'TeamFeatureDigitalSignatures))
+  deriving (Arbitrary) via (GenericUniform DigitalSignaturesConfig)
 
-instance ToSchema (FeatureConfig 'TeamFeatureDigitalSignatures) where
+instance ToSchema DigitalSignaturesConfig where
   schema = object "DigitalSignaturesConfig" $ pure DigitalSignaturesConfig
 
 --------------------------------------------------------------------------------
 -- ConferenceCalling feature
 
-data instance FeatureConfig 'TeamFeatureConferenceCalling = ConferenceCallingConfig
+data ConferenceCallingConfig = ConferenceCallingConfig
   deriving stock (Eq, Show, Generic)
-  deriving (Arbitrary) via (GenericUniform (FeatureConfig 'TeamFeatureConferenceCalling))
+  deriving (Arbitrary) via (GenericUniform ConferenceCallingConfig)
 
-instance ToSchema (FeatureConfig 'TeamFeatureConferenceCalling) where
+instance ToSchema ConferenceCallingConfig where
   schema = object "ConferenceCallingConfig" $ pure ConferenceCallingConfig
 
 --------------------------------------------------------------------------------
 -- GuestLinks feature
 
-data instance FeatureConfig 'TeamFeatureGuestLinks = GuestLinksConfig
+data GuestLinksConfig = GuestLinksConfig
   deriving stock (Eq, Show, Generic)
-  deriving (Arbitrary) via (GenericUniform (FeatureConfig 'TeamFeatureGuestLinks))
+  deriving (Arbitrary) via (GenericUniform GuestLinksConfig)
 
-instance ToSchema (FeatureConfig 'TeamFeatureGuestLinks) where
+instance ToSchema GuestLinksConfig where
   schema = object "GuestLinksConfig" $ pure GuestLinksConfig
 
 --------------------------------------------------------------------------------
 -- SndFactorPasswordChallenge feature
 
-data instance FeatureConfig 'TeamFeatureSndFactorPasswordChallenge = SndFactorPasswordChallengeConfig
+data SndFactorPasswordChallengeConfig = SndFactorPasswordChallengeConfig
   deriving stock (Eq, Show, Generic)
-  deriving (Arbitrary) via (GenericUniform (FeatureConfig 'TeamFeatureSndFactorPasswordChallenge))
+  deriving (Arbitrary) via (GenericUniform SndFactorPasswordChallengeConfig)
 
-instance ToSchema (FeatureConfig 'TeamFeatureSndFactorPasswordChallenge) where
+instance ToSchema SndFactorPasswordChallengeConfig where
   schema = object "SndFactorPasswordChallengeConfig" $ pure SndFactorPasswordChallengeConfig
 
 --------------------------------------------------------------------------------
 -- SearchVisibilityInbound feature
 
-data instance FeatureConfig 'TeamFeatureSearchVisibilityInbound = SearchVisibilityInboundConfig
+data SearchVisibilityInboundConfig = SearchVisibilityInboundConfig
   deriving stock (Eq, Show, Generic)
-  deriving (Arbitrary) via (GenericUniform (FeatureConfig 'TeamFeatureSearchVisibilityInbound))
+  deriving (Arbitrary) via (GenericUniform SearchVisibilityInboundConfig)
 
-instance ToSchema (FeatureConfig 'TeamFeatureSearchVisibilityInbound) where
+instance ToSchema SearchVisibilityInboundConfig where
   schema = object "SearchVisibilityInboundConfig" $ pure SearchVisibilityInboundConfig
 
 ----------------------------------------------------------------------
 -- ClassifiedDomains feature
 
-data instance FeatureConfig 'TeamFeatureClassifiedDomains = ClassifiedDomainsConfig
+data ClassifiedDomainsConfig = ClassifiedDomainsConfig
   { classifiedDomainsDomains :: [Domain]
   }
   deriving stock (Show, Eq, Generic)
-  deriving (ToJSON, FromJSON, S.ToSchema) via (Schema (FeatureConfig 'TeamFeatureClassifiedDomains))
+  deriving (ToJSON, FromJSON, S.ToSchema) via (Schema ClassifiedDomainsConfig)
 
-deriving via (GenericUniform (FeatureConfig 'TeamFeatureClassifiedDomains)) instance Arbitrary (FeatureConfig 'TeamFeatureClassifiedDomains)
+deriving via (GenericUniform ClassifiedDomainsConfig) instance Arbitrary ClassifiedDomainsConfig
 
-instance ToSchema (FeatureConfig 'TeamFeatureClassifiedDomains) where
+instance ToSchema ClassifiedDomainsConfig where
   schema =
     object "ClassifiedDomainsConfig" $
       ClassifiedDomainsConfig
@@ -647,16 +642,15 @@ modelTeamFeatureClassifiedDomainsConfig =
 ----------------------------------------------------------------------
 -- AppLock feature
 
-data instance FeatureConfig 'TeamFeatureAppLock = AppLockConfig
+data AppLockConfig = AppLockConfig
   { applockEnforceAppLock :: EnforceAppLock,
     applockInactivityTimeoutSecs :: Int32
   }
   deriving stock (Eq, Show, Generic)
-  deriving (FromJSON, ToJSON, S.ToSchema) via (Schema (FeatureConfig 'TeamFeatureAppLock))
+  deriving (FromJSON, ToJSON, S.ToSchema) via (Schema AppLockConfig)
+  deriving (Arbitrary) via (GenericUniform AppLockConfig)
 
-deriving via (GenericUniform (FeatureConfig 'TeamFeatureAppLock)) instance Arbitrary (FeatureConfig 'TeamFeatureAppLock)
-
-instance ToSchema (FeatureConfig 'TeamFeatureAppLock) where
+instance ToSchema AppLockConfig where
   schema =
     object "AppLockConfig" $
       AppLockConfig
@@ -680,24 +674,24 @@ modelTeamFeatureAppLockConfig =
 --------------------------------------------------------------------------------
 -- FileSharing feature
 
-data instance FeatureConfig 'TeamFeatureFileSharing = FileSharingConfig
+data FileSharingConfig = FileSharingConfig
   deriving stock (Eq, Show, Generic)
-  deriving (Arbitrary) via (GenericUniform (FeatureConfig 'TeamFeatureFileSharing))
+  deriving (Arbitrary) via (GenericUniform FileSharingConfig)
 
-instance ToSchema (FeatureConfig 'TeamFeatureFileSharing) where
+instance ToSchema FileSharingConfig where
   schema = object "FileSharingConfig" $ pure FileSharingConfig
 
 ----------------------------------------------------------------------
 -- SelfDeletingMessagesConfig
 
-data instance FeatureConfig 'TeamFeatureSelfDeletingMessages = SelfDeletingMessagesConfig
+newtype SelfDeletingMessagesConfig = SelfDeletingMessagesConfig
   { sdmEnforcedTimeoutSeconds :: Int32
   }
   deriving stock (Eq, Show, Generic)
-  deriving (FromJSON, ToJSON, S.ToSchema) via (Schema (FeatureConfig 'TeamFeatureSelfDeletingMessages))
-  deriving (Arbitrary) via (GenericUniform (FeatureConfig 'TeamFeatureSelfDeletingMessages))
+  deriving (FromJSON, ToJSON, S.ToSchema) via (Schema SelfDeletingMessagesConfig)
+  deriving (Arbitrary) via (GenericUniform SelfDeletingMessagesConfig)
 
-instance ToSchema (FeatureConfig 'TeamFeatureSelfDeletingMessages) where
+instance ToSchema SelfDeletingMessagesConfig where
   schema =
     object "SelfDeletingMessagesConfig" $
       SelfDeletingMessagesConfig
