@@ -88,6 +88,8 @@ library
       Brig.Sem.BudgetStore.Cassandra
       Brig.Sem.CodeStore
       Brig.Sem.CodeStore.Cassandra
+      Brig.Sem.CookieStore
+      Brig.Sem.CookieStore.Cassandra
       Brig.Sem.PasswordResetStore
       Brig.Sem.PasswordResetStore.CodeStore
       Brig.Sem.PasswordResetSupply
