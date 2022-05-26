@@ -49,6 +49,8 @@ module Galley.Effects.BrigAccess
 
     -- * MLS
     getClientByKeyPackageRef,
+    getConvIdByKeyPackageRef,
+    putConvIdByKeyPackageRef,
     getMLSClients,
 
     -- * Features
@@ -124,6 +126,8 @@ data BrigAccess m a where
   RemoveLegalHoldClientFromUser :: UserId -> BrigAccess m ()
   GetAccountFeatureConfigClient :: UserId -> BrigAccess m TeamFeatureStatusNoConfig
   GetClientByKeyPackageRef :: KeyPackageRef -> BrigAccess m (Maybe ClientIdentity)
+  GetConvIdByKeyPackageRef :: KeyPackageRef -> BrigAccess m (Maybe (Qualified ConvId))
+  PutConvIdByKeyPackageRef :: KeyPackageRef -> Qualified ConvId -> BrigAccess m ()
   GetMLSClients :: Qualified UserId -> SignatureSchemeTag -> BrigAccess m (Set ClientId)
   UpdateSearchVisibilityInbound ::
     Multi.TeamStatusUpdate 'TeamFeatureSearchVisibilityInbound ->
